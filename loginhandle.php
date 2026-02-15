@@ -1,185 +1,81 @@
 <?php
 session_start();
+require_once 'db.php';
 
-// --- 1. CONFIGURAZIONE DATABASE ---
-$host = 'localhost';
-$db   = 'luboo_zucchetti5ib';
-$user = 'root'; 
-$pass = '';     
-$charset = 'utf8mb4';
-
-try {
-    $pdo = new PDO("mysql:host=$host;dbname=$db;charset=$charset", $user, $pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-    ]);
-} catch (\PDOException $e) {
-    die("Errore Database: " . $e->getMessage());
+// 1. VALIDAZIONE CAPTCHA SERVER-SIDE
+if (!isset($_SESSION['captcha_verified']) || $_SESSION['captcha_verified'] !== true) {
+    header("Location: front-page.php?error=" . urlencode("Verifica Captcha fallita!"));
+    exit;
 }
 
-// --- 2. LOGICA LOGIN ---
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
+$username = $_POST['username'] ?? '';
+$password = $_POST['password'] ?? '';
+
+// 2. QUERY AL DATABASE (Modificato "nome" in "nome" come da te indicato)
+$stmt = $conn->prepare("SELECT id, nome, cognome, role, codice_identificativo FROM users WHERE username = ? AND password = ?");
+$stmt->bind_param("ss", $username, $password);
+$stmt->execute();
+$result = $stmt->get_result();
+
+if ($result->num_rows === 1) {
+    $user = $result->fetch_assoc();
     
-    $username = trim($_POST['username']);
-    $password = $_POST['password'];
-    $captcha_verified = $_POST['captcha_verified'];
-
-    // Controllo Captcha
-    if ($captcha_verified != "1") {
-        $_SESSION['error'] = "Devi completare il puzzle captcha.";
-        header("Location: front-page.php");
-        exit();
-    }
-
-    // Controllo Formato Username (Prefisso)
-    $prefix = substr($username, 0, 3);
-    $role_map = ['ad.' => 'admin', 'co.' => 'coordinator', 'dp.' => 'employee'];
-
-    if (!array_key_exists($prefix, $role_map)) {
-        $_SESSION['error'] = "Username non valido (usa ad., co. o dp.)";
-        header("Location: front-page.php");
-        exit();
-    }
-
-    $expected_role = $role_map[$prefix];
-
-    // Cerca utente nel DB
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
-    $stmt->execute([$username]);
-    $userFound = $stmt->fetch();
-
-    // Verifiche Credenziali
-    if (!$userFound || $password !== $userFound['password']) {
-        $_SESSION['error'] = "Credenziali non valide."; // Messaggio generico per sicurezza
-        header("Location: front-page.php");
-        exit();
-    }
-
-    // Verifica Ruolo
-    if ($userFound['role'] !== $expected_role) {
-         $_SESSION['error'] = "Ruolo non corretto per questo account.";
-         header("Location: front-page.php");
-         exit();
-    }
-
-    // --- LOGIN EFFETTUATO CON SUCCESSO ---
-    $_SESSION['user_id'] = $userFound['id'];
-    $_SESSION['username'] = $userFound['username'];
-    $_SESSION['role'] = $userFound['role'];
-
-    // --- LOGICA SALUTO DINAMICO (M/F) ---
-    // Recuperiamo sesso, nome e cognome dal database
-    $sesso = $userFound['sesso']; // 'M' o 'F'
-    $nomeReale = $userFound['nome'];
-    $cognomeReale = $userFound['cognome'];
-
-    // Determina se scrivere Benvenuto o Benvenuta
-    // Se è 'F' usa Benvenuta, altrimenti (M o altro) usa Benvenuto
-    $saluto = ($sesso === 'F') ? 'Benvenuta' : 'Benvenuto';
+    // 3. CREAZIONE SESSIONE PERFETTA
+    $_SESSION['user_logged_in'] = true;
+    $_SESSION['user_id'] = $user['id'];
     
-    // Costruiamo la frase finale: es. "Benvenuta Valentina Malatesta"
-    $messaggioBenvenuto = "$saluto $nomeReale $cognomeReale";
+    // Assegno la colonna 'nome' alla variabile 'nome' per la dashboard
+    $_SESSION['nome'] = $user['nome']; 
+    $_SESSION['ruolo'] = $user['role']; 
+    
+    // Variabili accessorie
+    $_SESSION['user_nome'] = $user['nome'];
+    $_SESSION['user_cognome'] = $user['cognome'];
+    $_SESSION['user_ruolo'] = $user['role']; 
+    $_SESSION['user_codice'] = $user['codice_identificativo'];
+    
+    $_SESSION['captcha_verified'] = false; // Reset Sicurezza
 
+    // 4. SCELTA ANIMAZIONE LOTTIE IN BASE AL RUOLO
+    $ruolo = strtolower(trim($user['role']));
+    $lottieUrl = "src/Post-LOGINDipendente.json";
+    $bgGradient = "from-[#1e293b] to-[#0f172a]"; 
+    $rolenome = "Dipendente";
 
-    // --- SETUP ANIMAZIONE ---
-    $lottieFile = '';
-    $roleTitle = '';
-    switch ($userFound['role']) {
-        case 'admin':
-            $lottieFile = 'Post-LOGINAdmin.json';
-            $roleTitle = 'Admin';
-            break;
-        case 'coordinator':
-            $lottieFile = 'Post-LOGINCoordinatore.json';
-            $roleTitle = 'Coordinatore';
-            break;
-        default:
-            $lottieFile = 'Post-LOGINDipendente.json';
-            $roleTitle = 'Dipendente';
-            break;
+    if ($ruolo === 'coordinatore') {
+        $lottieUrl = "src/Post-LOGINCoordinatore.json"; 
+        $bgGradient = "from-[#2e1065] to-[#4c1d95]";
+        $rolenome = "Coordinatore";
+    } elseif ($ruolo === 'amministratore' || $ruolo === 'admin') {
+        $lottieUrl = "src/Post-LOGINAdmin.json";
+        $bgGradient = "from-[#0f172a] to-[#1e3a8a]";
+        $rolenome = "Amministratore";
     }
+
+    // 5. RENDER DELLA PAGINA DI CARICAMENTO
     ?>
-    
     <!DOCTYPE html>
     <html lang="it">
     <head>
         <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Accesso...</title>
         <script src="https://cdn.tailwindcss.com"></script>
         <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
-        <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
-        
+        <meta http-equiv="refresh" content="2.5;url=dashboard.php">
+        <title>Accesso in corso...</title>
         <style>
-            @font-face { 
-                font-family: 'SF Pro Rounded'; 
-                src: local('SF Pro Rounded'), url('fonts/SF-Pro-Rounded.woff2') format('woff2'); 
-                font-weight: normal; 
-            }
-            body {
-                font-family: 'SF Pro Rounded', 'Nunito', sans-serif;
-                background: linear-gradient(90deg, #30A9FF 0%, #14364F 60%, #0B0F15 100%);
-                height: 100vh; 
-                width: 100vw; 
-                display: flex; 
-                flex-direction: column;
-                align-items: center; 
-                justify-content: center; 
-                overflow: hidden; 
-                color: white;
-            }
-            .glass-loader {
-                background: rgba(255, 255, 255, 0.05); 
-                backdrop-filter: blur(10px);
-                border: 1px solid rgba(255, 255, 255, 0.1); 
-                border-radius: 24px; 
-                padding: 40px;
-                display: flex; 
-                flex-direction: column; 
-                align-items: center;
-                text-align: center; /* Centra il testo lungo */
-                animation: fadeIn 0.8s ease-out;
-            }
-            @keyframes fadeIn {
-                from { opacity: 0; transform: translateY(10px); }
-                to { opacity: 1; transform: translateY(0); }
-            }
+            @font-face { font-family: 'SF Pro Rounded'; src: local('SF Pro Rounded'); }
+            body { font-family: 'SF Pro Rounded', sans-serif; }
         </style>
-        
-        <meta http-equiv="refresh" content="4;url=dashboard.php">
     </head>
-    <body>
-        <div class="glass-loader">
-            <h2 class="text-3xl font-bold mb-2">
-                <?php echo htmlspecialchars($messaggioBenvenuto); ?>
-            </h2>
-            
-            <p class="text-blue-200 text-sm uppercase tracking-widest mb-6">
-                Caricamento Dashboard <?php echo $roleTitle; ?>
-            </p>
-            
-            <div class="w-64 h-64 md:w-80 md:h-80">
-                <lottie-player 
-                    src="<?php echo $lottieFile; ?>" 
-                    background="transparent" 
-                    speed="1" 
-                    style="width: 100%; height: 100%;" 
-                    loop 
-                    autoplay>
-                </lottie-player>
-            </div>
-            
-            <p class="mt-4 text-xs text-white/40 animate-pulse">Attendere prego...</p>
-        </div>
-
-        <script>
-            setTimeout(function() { 
-                window.location.href = 'dashboard.php'; 
-            }, 4000);
-        </script>
+    <body class="bg-gradient-to-br <?= $bgGradient ?> h-screen flex flex-col items-center justify-center overflow-hidden m-0">
+        <lottie-player src="<?= htmlspecialchars($lottieUrl) ?>" background="transparent" speed="1" class="w-[600px] h-[600px]" loop autoplay></lottie-player>
     </body>
     </html>
     <?php
+    exit();
+} else {
+    // Credenziali errate
+    header("Location: front-page.php?error=" . urlencode("Credenziali non valide"));
     exit();
 }
 ?>

@@ -2,29 +2,22 @@
 session_start();
 header('Content-Type: application/json');
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $input = json_decode(file_get_contents('php://input'), true);
-    $userX = isset($input['x']) ? floatval($input['x']) : 0;
+// Leggiamo i dati inviati dal frontend (JavaScript)
+$data = json_decode(file_get_contents('php://input'), true);
+
+if (isset($data['x']) && isset($_SESSION['captcha_target_x'])) {
+    $user_x = (int)$data['x'];
+    $target_x = (int)$_SESSION['captcha_target_x'];
     
-    if (!isset($_SESSION['puzzle_x'])) {
-        echo json_encode(['success' => false, 'message' => 'Session expired']);
+    // Tolleranza di 6 pixel per non frustrare l'utente se non è millimetrico
+    if (abs($user_x - $target_x) <= 6) {
+        $_SESSION['captcha_verified'] = true;
+        echo json_encode(['success' => true, 'message' => 'Verificato']);
         exit;
     }
-
-    $targetX = $_SESSION['puzzle_x'];
-    $tolerance = 6; // Tolleranza di 6 pixel
-
-    // La logica matematica:
-    // L'utente muove uno slider. Il JS converte % in Pixel.
-    // L'offset iniziale del pezzo nel CSS è "left: 10px". 
-    // Quindi la posizione reale è UserMovement + 10px.
-    // Ma nel codice JS sotto invieremo già il calcolo corretto.
-
-    if (abs($userX - $targetX) <= $tolerance) {
-        $_SESSION['captcha_verified'] = true;
-        echo json_encode(['success' => true]);
-    } else {
-        echo json_encode(['success' => false]);
-    }
 }
+
+// Se non coincide o mancano i dati
+$_SESSION['captcha_verified'] = false;
+echo json_encode(['success' => false, 'message' => 'Errore posizione']);
 ?>

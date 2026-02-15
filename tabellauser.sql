@@ -1,7 +1,12 @@
 CREATE DATABASE IF NOT EXISTS luboo_zucchetti5ib;
 USE luboo_zucchetti5ib;
 
--- Cancella la tabella vecchia se esiste per applicare le modifiche
+-- Disabilita i constraint di foreign key per evitare errori durante il drop
+SET FOREIGN_KEY_CHECKS=0;
+
+-- Cancella le tabelle vecchie se esistono per applicare le modifiche
+DROP TABLE IF EXISTS prenotazioni;
+DROP TABLE IF EXISTS postazioni;
 DROP TABLE IF EXISTS users;
 
 CREATE TABLE users (
@@ -25,8 +30,8 @@ CREATE TABLE users (
 -- I codici identificativi rispettano il formato: 4 numeri e 2 lettere (posizioni miste)
 INSERT INTO users (username, password, role, nome, cognome, data_nascita, sesso, eta, codice_identificativo) VALUES 
 ('ad.mvalentina', 'admin', 'admin', 'Valentina', 'Malatesta', '2007-11-23', 'F', 18, '9B21k3'),
-('co.amaichol', 'coordinatore', 'coordinator', 'Aprea', 'Maichol', '2007-04-18', 'M', 18, '1X88m9'),
-('co.knehemie', 'coordinatore', 'coordinator', 'Kablan', 'Nehemie', '2007-02-10', 'M', 18, '7P44q2'),
-('dp.pana', 'dipendente', 'employee', 'Padurariu', 'Ana', '2007-11-30', 'M', 18, '3L55z1'),
-('dp.pgiovanni', 'dipendente', 'employee', 'Papetti', 'Giovanni', '2007-04-12', 'M', 18, '8H99o4'),
-('dp.nthomas', 'dipendente', 'employee', 'Nervi', 'Thomas', '2007-01-01', 'M', 18, '2J66w7');
+('co.amaichol', 'coordinatore', 'coordinator', 'Maichol', 'Aprea', '2007-04-18', 'M', 18, '1X88m9'),
+('co.knehemie', 'coordinatore', 'coordinator', 'Nehemie', 'Kablan', '2007-02-10', 'M', 18, '7P44q2'),
+('dp.pana', 'dipendente', 'employee', 'Ana', 'Padurariu', '2007-11-30', 'M', 18, '3L55z1'),
+('dp.pgiovanni', 'dipendente', 'employee', 'Giovanni', 'Papetti', '2007-04-12', 'M', 18, '8H99o4'),
+('dp.nthomas', 'dipendente', 'employee', 'Thomas', 'Nervi', '2007-01-01', 'M', 18, '2J66w7');
