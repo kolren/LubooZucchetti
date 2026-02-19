@@ -13,7 +13,7 @@ CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    role ENUM('admin', 'coordinator', 'employee') NOT NULL,
+    role ENUM('amministratore', 'coordinatore', 'dipendente') NOT NULL,
     
     -- Nuovi parametri richiesti
     nome VARCHAR(50) NOT NULL,
@@ -29,9 +29,9 @@ CREATE TABLE users (
 -- Inserimento utenti con i nuovi dati "prefatti"
 -- I codici identificativi rispettano il formato: 4 numeri e 2 lettere (posizioni miste)
 INSERT INTO users (username, password, role, nome, cognome, data_nascita, sesso, eta, codice_identificativo) VALUES 
-('ad.mvalentina', 'admin', 'admin', 'Valentina', 'Malatesta', '2007-11-23', 'F', 18, '9B21k3'),
-('co.amaichol', 'coordinatore', 'coordinator', 'Maichol', 'Aprea', '2007-04-18', 'M', 18, '1X88m9'),
-('co.knehemie', 'coordinatore', 'coordinator', 'Nehemie', 'Kablan', '2007-02-10', 'M', 18, '7P44q2'),
-('dp.pana', 'dipendente', 'employee', 'Ana', 'Padurariu', '2007-11-30', 'M', 18, '3L55z1'),
-('dp.pgiovanni', 'dipendente', 'employee', 'Giovanni', 'Papetti', '2007-04-12', 'M', 18, '8H99o4'),
-('dp.nthomas', 'dipendente', 'employee', 'Thomas', 'Nervi', '2007-01-01', 'M', 18, '2J66w7');
+('ad.mvalentina', 'amministratore', 'amministratore', 'Valentina', 'Malatesta', '2007-11-23', 'F', 18, '9B21k3'),
+('co.amaichol', 'coordinatore', 'coordinatore', 'Maichol', 'Aprea', '2007-04-18', 'M', 18, '1X88m9'),
+('co.knehemie', 'coordinatore', 'coordinatore', 'Nehemie', 'Kablan', '2007-02-10', 'M', 18, '7P44q2'),
+('dp.pana', 'dipendente', 'dipendente', 'Ana', 'Padurariu', '2007-11-30', 'M', 18, '3L55z1'),
+('dp.pgiovanni', 'dipendente', 'dipendente', 'Giovanni', 'Papetti', '2007-04-12', 'M', 18, '8H99o4'),
+('dp.nthomas', 'dipendente', 'dipendente', 'Thomas', 'Nervi', '2007-01-01', 'M', 18, '2J66w7');

@@ -40,7 +40,7 @@ if ($result->num_rows === 1) {
     $ruolo_db = strtolower(trim($user['role']));
 
     // 2. Imposto i valori di DEFAULT (Dipendente)
-    $lottieUrl = "src/Post-LOGINDipendente.json";
+    $lottieUrl = "src/Post-LOGINDipendenti.json";
     $bgGradient = "bg-gradient-to-br from-[#071B2B] via-[#0E2F47] to-[#2E6F9E]";
     $rolenome = "Dipendente";
 
@@ -49,7 +49,7 @@ if ($result->num_rows === 1) {
         $lottieUrl = "src/Post-LOGINCoordinatore.json"; 
         $rolenome = "Coordinatore";
         // Se vuoi un gradiente diverso per il coordinatore, aggiungilo qui
-    } elseif ($ruolo_db === 'amministratore' || $ruolo_db === 'admin') {
+    } elseif ($ruolo_db === 'amministratore') {
         $lottieUrl = "src/Post-LOGINAdmin.json";
         $rolenome = "Amministratore";
         // Se vuoi un gradiente diverso per l'admin, aggiungilo qui

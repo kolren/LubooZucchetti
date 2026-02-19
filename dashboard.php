@@ -28,14 +28,33 @@ $attivita_dati = [
     'anno' => ['Trim 1' => 20, 'Trim 2' => 15, 'Trim 3' => 30, 'Trim 4' => 25]
 ];
 
-// Colori dinamici in base al ruolo
+// Colori e Gradienti dinamici in base al ruolo
 $themeColors = [
-    'amministratore' => ['badge_bg' => '#1D7F75', 'badge_text' => '#FFFFFF'], 
-    'admin' => ['badge_bg' => '#1D7F75', 'badge_text' => '#FFFFFF'], 
-    'coordinator' => ['badge_bg' => '#4d6dd4', 'badge_text' => '#FFFFFF'],   
-    'employee' => ['badge_bg' => '#6aa70f', 'badge_text' => '#FFFFFF']      
+    'amministratore' => [
+        'badge_bg'   => '#1D7F75', 
+        'badge_text' => '#FFFFFF',
+        'box_grad'   => 'bg-[linear-gradient(135deg,#0F6E73_0%,#138C8F_100%)]'
+    ],  
+    'coordinatore' => [
+        'badge_bg'   => '#4d6dd4', 
+        'badge_text' => '#FFFFFF',
+        'box_grad'   => 'bg-[linear-gradient(135deg,#2D4485_0%,#4D6DD4_100%)]'
+    ],   
+    'dipendente' => [
+        'badge_bg'   => '#6aa70f', 
+        'badge_text' => '#FFFFFF',
+        'box_grad'   => 'bg-[linear-gradient(135deg,#4D7C0F_0%,#6AA70F_100%)]'
+    ]      
 ];
-$roleTheme = array_key_exists($ruoloUtente, $themeColors) ? $themeColors[$ruoloUtente] : ['badge_bg' => '#475569', 'badge_text' => '#FFFFFF'];
+
+// Se il ruolo non esiste, usa uno stile di default (grigio)
+$roleTheme = array_key_exists($ruoloUtente, $themeColors) 
+    ? $themeColors[$ruoloUtente] 
+    : [
+        'badge_bg'   => '#475569', 
+        'badge_text' => '#FFFFFF', 
+        'box_grad'   => 'bg-slate-700'
+      ];
 ?>
 <!DOCTYPE html>
 <html lang="it">
@@ -51,7 +70,6 @@ $roleTheme = array_key_exists($ruoloUtente, $themeColors) ? $themeColors[$ruoloU
         body { font-family: ui-rounded, 'SF Pro Rounded', 'Nunito', system-ui, sans-serif; letter-spacing: -0.01em; }
         .bg-main { background: linear-gradient(135deg, #071B2B 0%, #0E2F47 40%, #2E6F9E 100%); }
         .bg-navbar { background: linear-gradient(to right, #143C5B, #1C537A); }
-        .bg-user-box { background: linear-gradient(145deg, #0F6E73, #138C8F); }
         .bg-nav-btn { background: linear-gradient(to bottom, #4C67A8, #5F7EC4); }
         .bg-nav-btn-active { background: linear-gradient(to bottom, #6E8FD6, #4F6EB5); }
         
@@ -82,23 +100,28 @@ $roleTheme = array_key_exists($ruoloUtente, $themeColors) ? $themeColors[$ruoloU
 
     <div class="w-full max-w-[1400px] flex flex-col gap-8">
 
-        <header class="relative">
+            <header class="relative">
             <div class="bg-navbar glass-panel rounded-[29px] p-4 lg:p-5 flex items-center justify-between flex-wrap gap-4">
                 <div class="flex items-center gap-4 lg:gap-6">
                     <img src="src/Logo.png" alt="LubooZucchetti" class="h-10 object-contain ml-2">
-                    <div class="bg-user-box rounded-[18px] px-5 py-2.5 flex flex-col justify-center shadow-lg border border-white/10">
+                    
+                    <div class="<?php echo $roleTheme['box_grad']; ?> rounded-[18px] px-5 py-2.5 flex flex-col justify-center shadow-lg border border-white/10">
+                        
                         <span class="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md self-start mb-0.5 shadow-sm" 
-                              style="background-color: <?php echo $roleTheme['badge_bg']; ?>; color: <?php echo $roleTheme['badge_text']; ?>;">
+                            style="background-color: <?php echo $roleTheme['badge_bg']; ?>; color: <?php echo $roleTheme['badge_text']; ?>;">
                             <?php echo htmlspecialchars($ruoloUtente); ?>
                         </span>
+
                         <span class="font-bold text-lg leading-none drop-shadow-md text-white mt-1">
                             Ciao <?php echo htmlspecialchars($nomeUtente); ?>!
                         </span>
+                        
                     </div>
                 </div>
 
+
                 <nav class="flex items-center gap-2 bg-[#0A2338]/40 p-1.5 rounded-[20px] border border-white/10 overflow-x-auto custom-scrollbar">
-                    <?php if (in_array($ruoloUtente, ['amministratore', 'admin', 'coordinatore', 'coordinator'])): ?>
+                    <?php if (in_array($ruoloUtente, ['amministratore', 'amministratore', 'coordinatoree', 'coordinatore'])): ?>
                     <a href="dipendenti.php" class="bg-nav-btn text-[#F1F6FF] px-5 py-2.5 rounded-[14px] text-sm font-bold shadow-md hover:brightness-110 transition-all whitespace-nowrap">Dipendenti</a>
                     <?php endif; ?>
                     
