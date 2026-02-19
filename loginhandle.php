@@ -36,22 +36,24 @@ if ($result->num_rows === 1) {
     
     $_SESSION['captcha_verified'] = false; // Reset Sicurezza
 
-    // 4. SCELTA ANIMAZIONE LOTTIE IN BASE AL RUOLO
-    $ruolo = strtolower(trim($user['role']));
+    // 1. Recupero il ruolo reale dal database
+    $ruolo_db = strtolower(trim($user['role']));
+
+    // 2. Imposto i valori di DEFAULT (Dipendente)
     $lottieUrl = "src/Post-LOGINDipendente.json";
-    $bgGradient = "from-[#1e293b] to-[#0f172a]"; 
+    $bgGradient = "bg-gradient-to-br from-[#071B2B] via-[#0E2F47] to-[#2E6F9E]";
     $rolenome = "Dipendente";
 
-    if ($ruolo === 'coordinatore') {
+    // 3. Controllo se il ruolo è diverso e aggiorno i valori
+    if ($ruolo_db === 'coordinatore') {
         $lottieUrl = "src/Post-LOGINCoordinatore.json"; 
-        $bgGradient = "from-[#2e1065] to-[#4c1d95]";
         $rolenome = "Coordinatore";
-    } elseif ($ruolo === 'amministratore' || $ruolo === 'admin') {
+        // Se vuoi un gradiente diverso per il coordinatore, aggiungilo qui
+    } elseif ($ruolo_db === 'amministratore' || $ruolo_db === 'admin') {
         $lottieUrl = "src/Post-LOGINAdmin.json";
-        $bgGradient = "from-[#0f172a] to-[#1e3a8a]";
         $rolenome = "Amministratore";
+        // Se vuoi un gradiente diverso per l'admin, aggiungilo qui
     }
-
     // 5. RENDER DELLA PAGINA DI CARICAMENTO
     ?>
     <!DOCTYPE html>
@@ -65,6 +67,7 @@ if ($result->num_rows === 1) {
         <style>
             @font-face { font-family: 'SF Pro Rounded'; src: local('SF Pro Rounded'); }
             body { font-family: 'SF Pro Rounded', sans-serif; }
+
         </style>
     </head>
     <body class="bg-gradient-to-br <?= $bgGradient ?> h-screen flex flex-col items-center justify-center overflow-hidden m-0">

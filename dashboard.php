@@ -32,8 +32,8 @@ $attivita_dati = [
 $themeColors = [
     'amministratore' => ['badge_bg' => '#1D7F75', 'badge_text' => '#FFFFFF'], 
     'admin' => ['badge_bg' => '#1D7F75', 'badge_text' => '#FFFFFF'], 
-    'coordinatore' => ['badge_bg' => '#5C78B8', 'badge_text' => '#FFFFFF'],   
-    'dipendente' => ['badge_bg' => '#84cc16', 'badge_text' => '#FFFFFF']      
+    'coordinator' => ['badge_bg' => '#4d6dd4', 'badge_text' => '#FFFFFF'],   
+    'employee' => ['badge_bg' => '#6aa70f', 'badge_text' => '#FFFFFF']      
 ];
 $roleTheme = array_key_exists($ruoloUtente, $themeColors) ? $themeColors[$ruoloUtente] : ['badge_bg' => '#475569', 'badge_text' => '#FFFFFF'];
 ?>
@@ -98,7 +98,7 @@ $roleTheme = array_key_exists($ruoloUtente, $themeColors) ? $themeColors[$ruoloU
                 </div>
 
                 <nav class="flex items-center gap-2 bg-[#0A2338]/40 p-1.5 rounded-[20px] border border-white/10 overflow-x-auto custom-scrollbar">
-                    <?php if (in_array($ruoloUtente, ['amministratore', 'admin', 'coordinatore'])): ?>
+                    <?php if (in_array($ruoloUtente, ['amministratore', 'admin', 'coordinatore', 'coordinator'])): ?>
                     <a href="dipendenti.php" class="bg-nav-btn text-[#F1F6FF] px-5 py-2.5 rounded-[14px] text-sm font-bold shadow-md hover:brightness-110 transition-all whitespace-nowrap">Dipendenti</a>
                     <?php endif; ?>
                     
@@ -110,7 +110,7 @@ $roleTheme = array_key_exists($ruoloUtente, $themeColors) ? $themeColors[$ruoloU
                 <div class="hidden md:flex items-center gap-3 text-[#BFD6E8] text-xs font-semibold mr-2">
                     <a href="#" class="hover:text-white transition-colors uppercase">Modifica</a>
                     <span class="w-1 h-1 rounded-full bg-white/20"></span>
-                    <a href="index.php" class="hover:text-white transition-colors uppercase">Cambia utente</a>
+                    <a href="loginhandle.php?action=logout" class="hover:text-white transition-colors uppercase">Cambia utente</a>
                     <span class="w-1 h-1 rounded-full bg-white/20"></span>
                     <a href="loginhandle.php?action=logout" class="text-[#FF8A8A] hover:text-[#FFB3B3] transition-colors uppercase">Esci</a>
                 </div>

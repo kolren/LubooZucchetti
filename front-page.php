@@ -137,7 +137,6 @@ $_SESSION['captcha_verified'] = false;
     <div class="glass-card">
         <div class="text-center mb-8">
             <h1 class="text-4xl font-black tracking-widest drop-shadow-lg mb-2">LOGIN</h1>
-            <p class="text-white/60 text-sm font-semibold tracking-wide">Accedi alla tua area riservata</p>
         </div>
 
         <?php if(isset($_SESSION['error'])): ?>
