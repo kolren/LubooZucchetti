@@ -8,8 +8,8 @@ if (!isset($_SESSION['captcha_verified']) || $_SESSION['captcha_verified'] !== t
     exit;
 }
 
-$username = $_POST['username'] ?? '';
-$password = $_POST['password'] ?? '';
+$username = isset($_POST['username']) ? $_POST['username'] : '';
+$password = isset($_POST['password']) ? $_POST['password'] : '';
 
 // 2. QUERY AL DATABASE (Modificato "nome" in "nome" come da te indicato)
 $stmt = $conn->prepare("SELECT id, nome, cognome, role, codice_identificativo FROM users WHERE username = ? AND password = ?");

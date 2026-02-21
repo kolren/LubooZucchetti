@@ -8,8 +8,8 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 // RECUPERO DATI SESSIONE (Usando le chiavi esatte del tuo loginhandle.php)
-$nomeUtente = $_SESSION['user_nome'] ?? 'Utente';
-$ruoloUtente = strtolower(trim($_SESSION['user_ruolo'] ?? 'dipendente'));
+$nomeUtente = isset($_SESSION['user_nome']) ? $_SESSION['user_nome'] : 'Utente';
+$ruoloUtente = strtolower(trim(isset($_SESSION['user_ruolo']) ? $_SESSION['user_ruolo'] : 'dipendente'));
 
 // Dati Simulati (da sostituire con il DB reale)
 $stat_totali = 42;

@@ -145,11 +145,13 @@
                 echo "<td><code>" . htmlspecialchars($u['codice_identificativo']) . "</code></td>";
                 
                 // Color coding per ruolo
-                $roleColor = match($u['role']) {
-                    'admin' => 'text-purple-300',
-                    'coordinator' => 'text-yellow-300',
-                    default => 'text-blue-300'
-                };
+                if ($u['role'] === 'admin') {
+                    $roleColor = 'text-purple-300';
+                } elseif ($u['role'] === 'coordinator') {
+                    $roleColor = 'text-yellow-300';
+                } else {
+                    $roleColor = 'text-blue-300';
+                }
                 echo "<td class='$roleColor font-semibold'>" . htmlspecialchars($u['role']) . "</td>";
                 echo "</tr>";
             }
