@@ -27,13 +27,16 @@ $ora_inizio = isset($_GET['inizio']) ? $_GET['inizio'] : '09:00';
 $ora_fine = isset($_GET['fine']) ? $_GET['fine'] : '18:00';
 $mappa_attiva = isset($_GET['mappa']) ? $_GET['mappa'] : 'base'; 
 
-// ARRAY SEZIONI CON SVG INCLUSI DINAMICAMENTE
-// Utilizzo @ per sopprimere warning se il file non è ancora stato creato nel percorso corretto
+// FUNZIONE OTTIMIZZATA PER CARICARE GLI SVG VELOCEMENTE (Senza bloccare la pagina se manca il file)
+function getSvgRapido($path) {
+    return file_exists($path) ? file_get_contents($path) : '<div class="text-xs text-white/50">N/A</div>';
+}
+
 $sezioni = [
-    'base' => ['icon' => @file_get_contents('src/PostazioneBase.svg'), 'nome' => 'Postazione Base', 'desc' => 'Scrivania + Cassettiera'],
-    'tech' => ['icon' => @file_get_contents('src/PostazioneTech.svg'), 'nome' => 'Postazione Tech', 'desc' => 'Scrivania + Monitor Extra'],
-    'meeting' => ['icon' => @file_get_contents('src/Riunioni.svg'), 'nome' => 'Sala Riunioni', 'desc' => 'Sala attrezzata'],
-    'parking' => ['icon' => @file_get_contents('src/PostoAuto.svg'), 'nome' => 'Posto Auto', 'desc' => 'Parcheggio interrato']
+    'base' => ['icon' => getSvgRapido('src/PostazioneBase.svg'), 'nome' => 'Postazione Base', 'desc' => 'Scrivania + Cassettiera'],
+    'tech' => ['icon' => getSvgRapido('src/PostazioneTech.svg'), 'nome' => 'Postazione Tech', 'desc' => 'Scrivania + Monitor Extra'],
+    'meeting' => ['icon' => getSvgRapido('src/Riunioni.svg'), 'nome' => 'Sala Riunioni', 'desc' => 'Sala attrezzata'],
+    'parking' => ['icon' => getSvgRapido('src/PostoAuto.svg'), 'nome' => 'Posto Auto', 'desc' => 'Parcheggio interrato']
 ];
 ?>
 <!DOCTYPE html>
@@ -63,7 +66,6 @@ $sezioni = [
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
         
-        /* Assicura che gli SVG caricati si adattino e prendano il colore del testo genitore */
         .svg-icon-wrapper svg { width: 100%; height: 100%; fill: currentColor; }
     </style>
 </head>
@@ -108,7 +110,7 @@ $sezioni = [
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch min-h-[650px]">
             
-            <div class="lg:col-span-4 ui-panel glass-panel p-6 flex flex-col shadow-2xl">
+            <div class="lg:col-span-3 ui-panel glass-panel p-6 flex flex-col shadow-2xl">
                 <div class="mb-6 text-center">
                     <h2 class="text-xl font-bold bg-gradient-to-r from-white to-[#ADD0FF] bg-clip-text text-transparent">Prenotazioni disponibili</h2>
                 </div>
@@ -121,15 +123,15 @@ $sezioni = [
                             : "bg-[rgba(255,255,255,0.05)] border border-white/5 hover:bg-[rgba(255,255,255,0.1)]";
                     ?>
                     <a href="prenotazione.php?mappa=<?php echo $id; ?>&data=<?php echo $oggi; ?>&inizio=<?php echo $ora_inizio; ?>&fine=<?php echo $ora_fine; ?>" 
-                       class="relative p-4 rounded-2xl transition-all flex items-center gap-4 <?php echo $bg_btn; ?>">
+                       class="relative p-4 rounded-2xl transition-all flex items-center gap-3 <?php echo $bg_btn; ?>">
                         
-                        <div class="w-10 h-10 flex items-center justify-center text-white drop-shadow-md svg-icon-wrapper">
-                            <?php echo $info['icon'] ?: 'SVG'; ?>
+                        <div class="w-8 h-8 flex items-center justify-center text-white drop-shadow-md svg-icon-wrapper">
+                            <?php echo $info['icon']; ?>
                         </div>
 
                         <div class="flex-1">
-                            <div class="text-white font-bold text-md leading-tight"><?php echo $info['nome']; ?></div>
-                            <div class="text-white/80 text-xs mt-0.5"><?php echo $info['desc']; ?></div>
+                            <div class="text-white font-bold text-sm leading-tight"><?php echo $info['nome']; ?></div>
+                            <div class="text-white/80 text-[10px] mt-0.5 leading-none"><?php echo $info['desc']; ?></div>
                         </div>
                     </a>
                     <?php endforeach; ?>
@@ -145,23 +147,45 @@ $sezioni = [
                 </div>
             </div>
 
-            <div class="lg:col-span-8 ui-panel glass-panel p-6 flex flex-col shadow-2xl">
-                <h2 class="text-xl font-bold text-white mb-6">Dettagli Prenotazione</h2>
+            <div class="lg:col-span-6 ui-panel glass-panel p-6 flex flex-col relative overflow-hidden shadow-2xl">
                 
-                <form id="booking-form" action="salva_prenotazione.php" method="POST" class="flex flex-col flex-grow gap-6 max-w-2xl">
+                <div class="flex items-center justify-between mb-4 relative z-10">
+                    <div class="relative">
+                        <select id="select-piano" onchange="cambiaPiano(this.value)" class="appearance-none pl-5 pr-10 py-2 bg-[rgba(198,101,213,0.6)] border border-white/20 rounded-[19px] text-white font-bold text-sm hover:bg-[rgba(198,101,213,0.8)] transition-colors shadow-lg cursor-pointer outline-none focus:ring-2 focus:ring-white/50">
+                            <option value="base" class="text-black" <?php echo ($mappa_attiva !== 'parking') ? 'selected' : ''; ?>>📍 Piano 1 (Uffici e Sale)</option>
+                            <option value="parking" class="text-black" <?php echo ($mappa_attiva === 'parking') ? 'selected' : ''; ?>>🚗 Piano Interrato (Parcheggi)</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-white">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                    </div>
+                    <h2 class="text-xl font-black text-white drop-shadow-md text-right"><?php echo $sezioni[$mappa_attiva]['nome']; ?></h2>
+                </div>
+
+                <div class="flex-grow w-full rounded-[20px] bg-[#071B2B]/40 border border-white/5 flex flex-col items-center justify-center p-4 relative">
+                    <svg class="w-16 h-16 text-white/20 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
+                    <p class="text-white/40 font-semibold text-lg">Mappa in attesa di logica</p>
+                </div>
+
+            </div>
+
+            <div class="lg:col-span-3 ui-panel glass-panel p-6 flex flex-col shadow-2xl">
+                <h2 class="text-xl font-bold text-white mb-6">Dettagli</h2>
+                
+                <form id="booking-form" action="salva_prenotazione.php" method="POST" class="flex flex-col flex-grow gap-4">
                     
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="text-white/80 text-xs font-bold mb-1.5 block uppercase tracking-wider">Asset</label>
-                            <div class="input-bg rounded-xl px-4 py-4 border border-white/10 shadow-inner text-center">
-                                <span class="text-white font-black text-xl" id="display-seat">-</span>
+                            <div class="input-bg rounded-xl px-3 py-3 border border-white/10 shadow-inner text-center">
+                                <span class="text-white font-black text-lg" id="display-seat">-</span>
                                 <input type="hidden" name="asset_id" id="input-asset-id" required>
                             </div>
                         </div>
                         <div>
                             <label class="text-white/80 text-xs font-bold mb-1.5 block uppercase tracking-wider">Locker</label>
-                            <div class="bg-[rgba(99,165,180,0.84)] rounded-xl px-4 py-4 border border-white/10 shadow-inner text-center">
-                                <span class="text-white font-black text-xl" id="display-locker">-</span>
+                            <div class="bg-[rgba(99,165,180,0.84)] rounded-xl px-3 py-3 border border-white/10 shadow-inner text-center">
+                                <span class="text-white font-black text-lg" id="display-locker">-</span>
                             </div>
                         </div>
                     </div>
@@ -169,37 +193,37 @@ $sezioni = [
                     <div>
                         <label class="text-white/80 text-xs font-bold mb-1.5 block uppercase tracking-wider">Data</label>
                         <input type="date" name="data" id="input-data" value="<?php echo $oggi; ?>" required 
-                               class="w-full input-bg border border-white/10 rounded-xl px-5 py-4 text-white text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-white/50">
+                               class="w-full input-bg border border-white/10 rounded-xl px-4 py-3 text-white text-md font-semibold focus:outline-none focus:ring-2 focus:ring-white/50">
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="text-white/80 text-xs font-bold mb-1.5 block uppercase tracking-wider">Inizio</label>
                             <input type="time" name="inizio" id="input-inizio" value="<?php echo $ora_inizio; ?>" required 
-                                   class="w-full input-bg border border-white/10 rounded-xl px-5 py-4 text-white text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-white/50">
+                                   class="w-full input-bg border border-white/10 rounded-xl px-4 py-3 text-white text-md font-semibold focus:outline-none focus:ring-2 focus:ring-white/50">
                         </div>
                         <div>
                             <label class="text-white/80 text-xs font-bold mb-1.5 block uppercase tracking-wider">Fine</label>
                             <input type="time" name="fine" id="input-fine" value="<?php echo $ora_fine; ?>" required 
-                                   class="w-full input-bg border border-white/10 rounded-xl px-5 py-4 text-white text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-white/50">
+                                   class="w-full input-bg border border-white/10 rounded-xl px-4 py-3 text-white text-md font-semibold focus:outline-none focus:ring-2 focus:ring-white/50">
                         </div>
                     </div>
 
-                    <div class="card-info rounded-xl p-5 border border-white/20 mt-4">
-                        <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 flex items-center justify-center text-white drop-shadow-md svg-icon-wrapper">
-                                <?php echo $sezioni[$mappa_attiva]['icon'] ?: 'SVG'; ?>
+                    <div class="card-info rounded-xl p-4 border border-white/20 mt-2">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 flex items-center justify-center text-white drop-shadow-md svg-icon-wrapper">
+                                <?php echo $sezioni[$mappa_attiva]['icon']; ?>
                             </div>
                             <div>
-                                <div class="text-white font-bold text-lg leading-tight"><?php echo $sezioni[$mappa_attiva]['nome']; ?></div>
-                                <div class="text-white/90 text-xs mt-1"><?php echo $sezioni[$mappa_attiva]['desc']; ?></div>
+                                <div class="text-white font-bold text-sm leading-tight"><?php echo $sezioni[$mappa_attiva]['nome']; ?></div>
+                                <div class="text-white/90 text-[10px] mt-0.5"><?php echo $sezioni[$mappa_attiva]['desc']; ?></div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="mt-auto pt-6">
+                    <div class="mt-auto pt-4">
                         <button type="submit" id="btn-submit" 
-                                class="w-full py-5 px-4 rounded-xl font-black text-white text-lg uppercase tracking-wider transition-all border border-white/10 shadow-xl bg-[rgba(180,123,99,0.95)] hover:brightness-110 hover:scale-[1.02]">
+                                class="w-full py-4 px-4 rounded-xl font-black text-white text-md uppercase tracking-wider transition-all border border-white/10 shadow-xl bg-[rgba(180,123,99,0.95)] hover:brightness-110 hover:scale-[1.02]">
                             Conferma
                         </button>
                     </div>
@@ -210,18 +234,22 @@ $sezioni = [
     </div>
 
     <script>
+        function cambiaPiano(valoreMappa) {
+            const params = new URLSearchParams(window.location.search);
+            params.set('mappa', valoreMappa);
+            params.set('data', document.getElementById('input-data').value);
+            params.set('inizio', document.getElementById('input-inizio').value);
+            params.set('fine', document.getElementById('input-fine').value);
+            window.location.href = window.location.pathname + '?' + params.toString();
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             const inputData = document.getElementById('input-data');
             const inputInizio = document.getElementById('input-inizio');
             const inputFine = document.getElementById('input-fine');
 
             function ricaricaDisponibilita() {
-                const params = new URLSearchParams(window.location.search);
-                params.set('mappa', '<?php echo $mappa_attiva; ?>');
-                params.set('data', inputData.value);
-                params.set('inizio', inputInizio.value);
-                params.set('fine', inputFine.value);
-                window.location.href = window.location.pathname + '?' + params.toString();
+                cambiaPiano('<?php echo $mappa_attiva; ?>');
             }
 
             inputData.addEventListener('change', ricaricaDisponibilita);
