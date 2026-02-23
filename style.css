@@ -1,21 +1,75 @@
 /* style.css */
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
 
+/* Typography */
 body {
-    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: ui-rounded, 'SF Pro Rounded', 'Nunito', system-ui, sans-serif;
+    letter-spacing: -0.01em;
 }
 
-/* Scrollbar personalizzata come richiesto */
+/* Backgrounds & Gradients */
+.bg-main { background: linear-gradient(135deg, #071B2B 0%, #0E2F47 40%, #2E6F9E 100%); }
+.bg-navbar { background: linear-gradient(to right, #143C5B, #1C537A); }
+.bg-nav-btn { background: linear-gradient(to bottom, #4C67A8, #5F7EC4); }
+.bg-nav-btn-active { background: linear-gradient(to bottom, #6E8FD6, #4F6EB5); }
+
+.bg-card-1 { background: linear-gradient(145deg, #153C59, #1E587A); }
+.bg-card-2 { background: linear-gradient(145deg, #5A4B67, #6F5D7D); }
+.bg-card-3 { background: linear-gradient(145deg, #2E6C68, #3F8C84); }
+.bg-card-4 { background: linear-gradient(145deg, #3A86A6, #4FA8C7); }
+
+.bg-bookings { background: linear-gradient(160deg, #1E4D6B, #183F59); }
+.bg-booking-item { background: linear-gradient(145deg, #2C6B92, #3A7FA8); }
+.bg-booking-auto { background: linear-gradient(145deg, #2F6E58, #3F8C6F); }
+
+.bg-activity { background: linear-gradient(160deg, #184760, #215F7D); }
+.bg-progress-base { background-color: #355F75; }
+.bg-progress-fill { background: linear-gradient(to right, #5E8BFF, #9FA8FF); }
+.bg-btn-prenota { background: linear-gradient(145deg, #B3836A, #C89A80); }
+.bg-btn-gestisci { background: linear-gradient(145deg, #5C78B8, #6C8DD0); }
+
+/* Glass & UI Panels */
+.glass-panel {
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.ui-panel {
+    background: rgba(0, 51, 128, 0.24);
+    border-radius: 34px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.input-bg { background: rgba(99, 144, 180, 0.84); }
+.card-info { background: rgba(192, 199, 255, 0.55); }
+
+/* Custom Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
+    height: 5px;
 }
-.custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-}
+
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb {
     background-color: rgba(255, 255, 255, 0.3);
     border-radius: 9999px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Form Controls */
+::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    cursor: pointer;
+}
+
+/* Icons */
+.svg-icon-wrapper svg {
+    width: 100%;
+    height: 100%;
+    fill: currentColor;
 }

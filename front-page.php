@@ -126,6 +126,25 @@ $_SESSION['captcha_verified'] = false;
 
         .logo-container { margin-bottom: 32px; display: flex; justify-content: center; width: 100%; z-index: 10; }
         .footer-text { color: rgba(255, 255, 255, 0.4); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.05em; margin-top: 32px; z-index: 10; }
+
+        .error-message {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
     </style>
 </head>
 <body>
@@ -134,14 +153,17 @@ $_SESSION['captcha_verified'] = false;
         <img src="src/Logo.png" alt="BookSystem Logo" class="h-20 object-contain drop-shadow-2xl" onerror="this.style.display='none'">
     </div>
 
-    <div class="glass-card">
+    <div class="glass-card <?php if(isset($_GET['error'])) echo 'shake'; ?>">
         <div class="text-center mb-8">
             <h1 class="text-4xl font-black tracking-widest drop-shadow-lg mb-2">LOGIN</h1>
         </div>
 
-        <?php if(isset($_SESSION['error'])): ?>
-            <div class="mb-6 bg-red-500/20 border border-red-500/40 text-red-100 text-sm font-bold text-center py-3 rounded-2xl backdrop-blur-sm">
-                <?= htmlspecialchars($_SESSION['error']); unset($_SESSION['error']); ?>
+        <?php if(isset($_GET['error'])): ?>
+            <div class="mb-6 bg-red-500/20 border border-red-500/40 text-red-100 text-sm font-bold text-center py-3 rounded-2xl backdrop-blur-sm error-message flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                </svg>
+                <?= htmlspecialchars($_GET['error']); ?>
             </div>
         <?php endif; ?>
 

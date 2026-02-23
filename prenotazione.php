@@ -45,29 +45,10 @@ $sezioni = [
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prenotazione - LubooZucchetti</title>
-    
+    <style> </style>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    
-    <style>
-        body { font-family: ui-rounded, 'SF Pro Rounded', 'Nunito', system-ui, sans-serif; letter-spacing: -0.01em; }
-        .bg-main { background: linear-gradient(135deg, #071B2B 0%, #0E2F47 40%, #2E6F9E 100%); }
-        .bg-navbar { background: linear-gradient(to right, #143C5B, #1C537A); }
-        .bg-nav-btn { background: linear-gradient(to bottom, #4C67A8, #5F7EC4); }
-        .bg-nav-btn-active { background: linear-gradient(to bottom, #6E8FD6, #4F6EB5); }
-        .glass-panel { backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
-        
-        .ui-panel { background: rgba(0, 51, 128, 0.24); border-radius: 34px; border: 1px solid rgba(255,255,255,0.05); }
-        .input-bg { background: rgba(99, 144, 180, 0.84); }
-        .card-info { background: rgba(192, 199, 255, 0.55); }
-        
-        ::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
-        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
-        
-        .svg-icon-wrapper svg { width: 100%; height: 100%; fill: currentColor; }
-    </style>
+    <link rel="stylesheet" href="style.css"> 
 </head>
 
 <body class="min-h-screen bg-main p-4 md:p-6 lg:p-8 overflow-x-hidden flex justify-center text-[#F1F6FF]">

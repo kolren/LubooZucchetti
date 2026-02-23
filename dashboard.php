@@ -65,35 +65,7 @@ $roleTheme = array_key_exists($ruoloUtente, $themeColors)
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    
-    <style>
-        body { font-family: ui-rounded, 'SF Pro Rounded', 'Nunito', system-ui, sans-serif; letter-spacing: -0.01em; }
-        .bg-main { background: linear-gradient(135deg, #071B2B 0%, #0E2F47 40%, #2E6F9E 100%); }
-        .bg-navbar { background: linear-gradient(to right, #143C5B, #1C537A); }
-        .bg-nav-btn { background: linear-gradient(to bottom, #4C67A8, #5F7EC4); }
-        .bg-nav-btn-active { background: linear-gradient(to bottom, #6E8FD6, #4F6EB5); }
-        
-        .bg-card-1 { background: linear-gradient(145deg, #153C59, #1E587A); }
-        .bg-card-2 { background: linear-gradient(145deg, #5A4B67, #6F5D7D); }
-        .bg-card-3 { background: linear-gradient(145deg, #2E6C68, #3F8C84); }
-        .bg-card-4 { background: linear-gradient(145deg, #3A86A6, #4FA8C7); }
-        
-        .bg-bookings { background: linear-gradient(160deg, #1E4D6B, #183F59); }
-        .bg-booking-item { background: linear-gradient(145deg, #2C6B92, #3A7FA8); }
-        .bg-booking-auto { background: linear-gradient(145deg, #2F6E58, #3F8C6F); }
-        
-        .bg-activity { background: linear-gradient(160deg, #184760, #215F7D); }
-        .bg-progress-base { background-color: #355F75; }
-        .bg-progress-fill { background: linear-gradient(to right, #5E8BFF, #9FA8FF); }
-        .bg-btn-prenota { background: linear-gradient(145deg, #B3836A, #C89A80); }
-        .bg-btn-gestisci { background: linear-gradient(145deg, #5C78B8, #6C8DD0); }
-
-        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
-        
-        .glass-panel { backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body class="min-h-screen bg-main p-4 md:p-6 lg:p-8 overflow-x-hidden flex justify-center text-[#F1F6FF]">
