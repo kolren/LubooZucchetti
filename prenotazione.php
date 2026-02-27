@@ -27,16 +27,16 @@ $ora_inizio = isset($_GET['inizio']) ? $_GET['inizio'] : '09:00';
 $ora_fine = isset($_GET['fine']) ? $_GET['fine'] : '18:00';
 $mappa_attiva = isset($_GET['mappa']) ? $_GET['mappa'] : 'base'; 
 
-// FUNZIONE OTTIMIZZATA PER CARICARE GLI SVG VELOCEMENTE (Senza bloccare la pagina se manca il file)
+// FUNZIONE OTTIMIZZATA PER CARICARE GLI SVG VELOCEMENTE
 function getSvgRapido($path) {
     return file_exists($path) ? file_get_contents($path) : '<div class="text-xs text-white/50">N/A</div>';
 }
 
 $sezioni = [
-    'base' => ['icon' => getSvgRapido('src/PostazioneBase.svg'), 'nome' => 'Postazione Base', 'desc' => 'Scrivania + Cassettiera'],
-    'tech' => ['icon' => getSvgRapido('src/PostazioneTech.svg'), 'nome' => 'Postazione Tech', 'desc' => 'Scrivania + Monitor Extra'],
-    'meeting' => ['icon' => getSvgRapido('src/Riunioni.svg'), 'nome' => 'Sala Riunioni', 'desc' => 'Sala attrezzata'],
-    'parking' => ['icon' => getSvgRapido('src/PostoAuto.svg'), 'nome' => 'Posto Auto', 'desc' => 'Parcheggio interrato']
+    'base' => ['icon' => getSvgRapido('src/Icone/PostazioneBase.svg'), 'nome' => 'Postazione Base', 'desc' => 'Scrivania + Cassettiera'],
+    'tech' => ['icon' => getSvgRapido('src/Icone/PostazioneTech.svg'), 'nome' => 'Postazione Tech', 'desc' => 'Scrivania + Monitor Extra'],
+    'meeting' => ['icon' => getSvgRapido('src/Icone/Riunioni.svg'), 'nome' => 'Sala Riunioni', 'desc' => 'Sala attrezzata'],
+    'parking' => ['icon' => getSvgRapido('src/Icone/PostoAuto.svg'), 'nome' => 'Posto Auto', 'desc' => 'Parcheggio interrato']
 ];
 ?>
 <!DOCTYPE html>
@@ -45,7 +45,20 @@ $sezioni = [
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prenotazione - LubooZucchetti</title>
-    <style> </style>
+    <style>
+        /* CSS per Mappa Interattiva integrato senza rompere Tailwind */
+        .svg-slot { fill: #36A482; cursor: pointer; transition: fill 0.2s; } /* Verde - Disponibile */
+        .svg-slot:hover { filter: brightness(1.2); }
+        .svg-slot.occupato { fill: #ef4444; pointer-events: none; } /* Rosso - Occupato */
+        .svg-slot.selezionato { fill: #ffffff; } /* Bianco - Selezionato (come da tua legenda) */
+
+        .png-risorsa { background-color: #36A482; cursor: pointer; transition: 0.2s; mask-size: contain; -webkit-mask-size: contain; mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat; mask-position: center; -webkit-mask-position: center; }
+        .png-risorsa:hover { filter: brightness(1.2); }
+        .png-risorsa.occupato { background-color: #ef4444; pointer-events: none; }
+        .png-risorsa.selezionato { background-color: #ffffff; }
+
+        .parcheggio-grid { display: grid; grid-template-columns: repeat(5, 40px); gap: 10px; justify-content: center; align-items: center; width: 100%; height: 100%; }
+    </style>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css"> 
@@ -123,7 +136,7 @@ $sezioni = [
                     <div class="flex flex-col gap-3 text-sm">
                         <div class="flex items-center gap-3"><div class="w-4 h-4 bg-[#36A482] rounded-full"></div><span class="text-white/90">Disponibile</span></div>
                         <div class="flex items-center gap-3"><div class="w-4 h-4 bg-[#ef4444] rounded-full"></div><span class="text-white/90">Occupato</span></div>
-                        <div class="flex items-center gap-3"><div class="w-4 h-4 bg-white rounded-full"></div><span class="text-white/90">Selezionato</span></div>
+                        <div class="flex items-center gap-3"><div class="w-4 h-4 bg-white rounded-full border border-gray-400"></div><span class="text-white/90">Selezionato</span></div>
                     </div>
                 </div>
             </div>
@@ -133,7 +146,8 @@ $sezioni = [
                 <div class="flex items-center justify-between mb-4 relative z-10">
                     <div class="relative">
                         <select id="select-piano" onchange="cambiaPiano(this.value)" class="appearance-none pl-5 pr-10 py-2 bg-[rgba(198,101,213,0.6)] border border-white/20 rounded-[19px] text-white font-bold text-sm hover:bg-[rgba(198,101,213,0.8)] transition-colors shadow-lg cursor-pointer outline-none focus:ring-2 focus:ring-white/50">
-                            <option value="base" class="text-black" <?php echo ($mappa_attiva !== 'parking') ? 'selected' : ''; ?>>📍 Piano 1 (Uffici e Sale)</option>
+                            <option value="base" class="text-black" <?php echo ($mappa_attiva === 'base' || $mappa_attiva === 'meeting') ? 'selected' : ''; ?>>📍 Piano 1 (Base/Sale)</option>
+                            <option value="tech" class="text-black" <?php echo ($mappa_attiva === 'tech') ? 'selected' : ''; ?>>📍 Piano 2 (Tech)</option>
                             <option value="parking" class="text-black" <?php echo ($mappa_attiva === 'parking') ? 'selected' : ''; ?>>🚗 Piano Interrato (Parcheggi)</option>
                         </select>
                         <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-white">
@@ -143,11 +157,59 @@ $sezioni = [
                     <h2 class="text-xl font-black text-white drop-shadow-md text-right"><?php echo $sezioni[$mappa_attiva]['nome']; ?></h2>
                 </div>
 
-                <div class="flex-grow w-full rounded-[20px] bg-[#071B2B]/40 border border-white/5 flex flex-col items-center justify-center p-4 relative">
-                    <svg class="w-16 h-16 text-white/20 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
-                    <p class="text-white/40 font-semibold text-lg">Mappa in attesa di logica</p>
-                </div>
+                <div class="flex-grow w-full rounded-[20px] bg-[#071B2B]/40 border border-white/5 relative overflow-hidden flex justify-center items-center">
+                    
+                    <?php if ($mappa_attiva === 'base' || $mappa_attiva === 'meeting'): ?>
+                        <img src="Piano Primo.png" class="absolute w-full h-full object-contain opacity-30" alt="Mappa Piano 1">
+                        
+                        <div class="absolute" style="top: 30%; left: 40%;">
+                            <svg width="100" height="100" viewBox="0 0 100 100">
+                                <rect width="100" height="100" rx="15" ry="15" fill="#808080" />
+                                <circle cx="25" cy="25" r="12" class="svg-slot risorsa-item" data-id="desk_base_1" data-slot="1" data-tipo="base"/>
+                                <circle cx="75" cy="25" r="12" class="svg-slot risorsa-item" data-id="desk_base_1" data-slot="2" data-tipo="base"/>
+                                <circle cx="25" cy="75" r="12" class="svg-slot risorsa-item" data-id="desk_base_1" data-slot="3" data-tipo="base"/>
+                                <circle cx="75" cy="75" r="12" class="svg-slot risorsa-item" data-id="desk_base_1" data-slot="4" data-tipo="base"/>
+                            </svg>
+                        </div>
 
+                        <div class="absolute" style="top: 60%; left: 20%;">
+                            <div class="png-risorsa risorsa-item" data-id="sala_1" data-tipo="meeting" style="width: 80px; height: 60px; -webkit-mask-image: url('src/AssetMappa/SalaRiunioni.png'); mask-image: url('src/AssetMappa/SalaRiunioni.png');"></div>
+                        </div>
+
+                    <?php elseif ($mappa_attiva === 'tech'): ?>
+                        <img src="Piano 2.png" class="absolute w-full h-full object-contain opacity-30" alt="Mappa Piano 2">
+                        
+                        <div class="absolute" style="top: 40%; left: 35%;">
+                            <svg width="160" height="100" viewBox="0 0 160 100">
+                                <rect width="160" height="100" rx="15" ry="15" fill="#FFA500" />
+                                <circle cx="25" cy="25" r="10" class="svg-slot risorsa-item" data-id="desk_tech_1" data-slot="1" data-tipo="tech"/>
+                                <circle cx="62" cy="25" r="10" class="svg-slot risorsa-item" data-id="desk_tech_1" data-slot="2" data-tipo="tech"/>
+                                <circle cx="98" cy="25" r="10" class="svg-slot risorsa-item" data-id="desk_tech_1" data-slot="3" data-tipo="tech"/>
+                                <circle cx="135" cy="25" r="10" class="svg-slot risorsa-item" data-id="desk_tech_1" data-slot="4" data-tipo="tech"/>
+                                <circle cx="25" cy="75" r="10" class="svg-slot risorsa-item" data-id="desk_tech_1" data-slot="5" data-tipo="tech"/>
+                                <circle cx="62" cy="75" r="10" class="svg-slot risorsa-item" data-id="desk_tech_1" data-slot="6" data-tipo="tech"/>
+                                <circle cx="98" cy="75" r="10" class="svg-slot risorsa-item" data-id="desk_tech_1" data-slot="7" data-tipo="tech"/>
+                                <circle cx="135" cy="75" r="10" class="svg-slot risorsa-item" data-id="desk_tech_1" data-slot="8" data-tipo="tech"/>
+                            </svg>
+                        </div>
+
+                    <?php elseif ($mappa_attiva === 'parking'): ?>
+                        <div class="parcheggio-grid">
+                            <?php
+                            for ($fila = 1; $fila <= 5; $fila++) {
+                                for ($posto = 1; $posto <= 5; $posto++) {
+                                    $id_posto = "park_{$fila}_{$posto}";
+                                    $is_disabile = ($posto >= 4); // Ultime 2 posizioni disabili
+                                    $mask_url = $is_disabile ? 'src/AssetMappa/PostoAutoDisabili.png' : 'src/AssetMappa/PostoAuto.png';
+                                    
+                                    echo "<div class='png-risorsa risorsa-item' data-id='{$id_posto}' data-tipo='parking' style='width:35px; height:60px; -webkit-mask-image: url(\"{$mask_url}\"); mask-image: url(\"{$mask_url}\");'></div>";
+                                }
+                            }
+                            ?>
+                        </div>
+                    <?php endif; ?>
+
+                </div>
             </div>
 
             <div class="lg:col-span-3 ui-panel glass-panel p-6 flex flex-col shadow-2xl">
@@ -161,6 +223,7 @@ $sezioni = [
                             <div class="input-bg rounded-xl px-3 py-3 border border-white/10 shadow-inner text-center">
                                 <span class="text-white font-black text-lg" id="display-seat">-</span>
                                 <input type="hidden" name="asset_id" id="input-asset-id" required>
+                                <input type="hidden" name="slot_id" id="input-slot-id">
                             </div>
                         </div>
                         <div>
@@ -236,6 +299,31 @@ $sezioni = [
             inputData.addEventListener('change', ricaricaDisponibilita);
             inputInizio.addEventListener('change', ricaricaDisponibilita);
             inputFine.addEventListener('change', ricaricaDisponibilita);
+
+            // Logica Selezione Risorse
+            document.querySelectorAll('.risorsa-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    if(this.classList.contains('occupato')) return; // Non cliccare se occupato
+
+                    // Rimuove selezione precedente
+                    document.querySelectorAll('.risorsa-item.selezionato').forEach(el => el.classList.remove('selezionato'));
+                    
+                    // Applica selezione
+                    this.classList.add('selezionato');
+
+                    // Prendi i dati
+                    const r_id = this.getAttribute('data-id');
+                    const r_slot = this.getAttribute('data-slot') || '';
+                    
+                    // Aggiorna Form Laterale
+                    document.getElementById('input-asset-id').value = r_id;
+                    document.getElementById('input-slot-id').value = r_slot;
+                    
+                    let displayTesto = r_id;
+                    if(r_slot) displayTesto += ` - Slot ${r_slot}`;
+                    document.getElementById('display-seat').innerText = displayTesto;
+                });
+            });
         });
     </script>
 </body>

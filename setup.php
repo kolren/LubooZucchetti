@@ -109,7 +109,7 @@
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
             // 2. Leggi file SQL
-            $sqlFile = 'tabellauser.sql'; 
+            $sqlFile = 'db.sql'; 
             if (!file_exists($sqlFile)) {
                 die("<div class='text-red-400 bg-red-900/30 p-4 rounded-lg'>Errore: File $sqlFile non trovato.</div>");
             }
