@@ -2,88 +2,134 @@
 session_start();
 require_once 'db.php';
 
-// Sicurezza
-if (!isset($_SESSION['user_id']) || $_SERVER['REQUEST_METHOD'] !== 'POST') {
+// Controllo Login
+if (!isset($_SESSION['user_id'])) {
+    header("Location: front-page.php");
+    exit();
+}
+
+// Se la richiesta non è in POST, rimanda indietro
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header("Location: prenotazione.php");
     exit();
 }
 
-$user_id = $_SESSION['user_id'];
-$ruolo = strtolower(trim($_SESSION['user_ruolo'] ?? 'dipendente'));
+// 1. Acquisizione Dati
+$utente_id = $_SESSION['user_id'];
+$ruolo = strtolower(trim(isset($_SESSION['user_ruolo']) ? $_SESSION['user_ruolo'] : 'dipendente'));
+$asset_id = intval($_POST['asset_id']);
+$data = $_POST['data'];
+$inizio = $_POST['inizio'];
+$fine = $_POST['fine'];
 
-// Presa dati dal Form
-$asset_id = $_POST['asset_id'] ?? '';
-$slot_id = $_POST['slot_id'] ?? null;
-$tipo_risorsa = $_POST['tipo_risorsa'] ?? ''; // Passato dal JS
-$data_prenotazione = $_POST['data'] ?? '';
-$ora_inizio = $_POST['inizio'] ?? '';
-$ora_fine = $_POST['fine'] ?? '';
-
-if (empty($asset_id) || empty($data_prenotazione) || empty($ora_inizio) || empty($ora_fine)) {
-    header("Location: prenotazione.php?error=Compila tutti i dati.");
+// Funzione di utilità per rimandare alla pagina prenotazioni con i filtri mantenuti
+function redirectWithError($msg, $data, $inizio, $fine) {
+    $url = "prenotazione.php?error=" . urlencode($msg) . "&data=$data&inizio=$inizio&fine=$fine";
+    header("Location: $url");
     exit();
 }
 
-// 1. LIMITI LOGICI PER RUOLO
-// Ipotizziamo: Parcheggio (Max 1 sempre, tranne Admin). Scrivania (Dipendente max 1, Coordinatore max 2, Admin illimitati)
-$is_parcheggio = strpos($asset_id, 'park') !== false;
-$is_scrivania = strpos($asset_id, 'desk') !== false;
-
-if ($ruolo !== 'amministratore') {
-    $limite_parcheggio = 1;
-    $limite_scrivania = ($ruolo === 'coordinatore') ? 2 : 1;
-
-    // Contiamo quante prenotazioni l'utente ha già fatto oggi per il tipo specifico
-    $stmt_count = $pdo->prepare("
-        SELECT 
-            SUM(CASE WHEN risorsa_id LIKE '%park%' THEN 1 ELSE 0 END) as tot_park,
-            SUM(CASE WHEN risorsa_id LIKE '%desk%' THEN 1 ELSE 0 END) as tot_desk
-        FROM prenotazioni 
-        WHERE utente_id = ? AND data_prenotazione = ?
-    ");
-    $stmt_count->execute([$user_id, $data_prenotazione]);
-    $conteggio = $stmt_count->fetch(PDO::FETCH_ASSOC);
-
-    if ($is_parcheggio && $conteggio['tot_park'] >= $limite_parcheggio) {
-        header("Location: prenotazione.php?error=Limite parcheggi raggiunto per questa data.");
-        exit();
-    }
-    if ($is_scrivania && $conteggio['tot_desk'] >= $limite_scrivania) {
-        header("Location: prenotazione.php?error=Limite scrivanie raggiunto per questa data.");
-        exit();
-    }
+// 2. Validazioni Base
+if (empty($asset_id) || empty($data) || empty($inizio) || empty($fine)) {
+    redirectWithError("Tutti i campi sono obbligatori.", $data, $inizio, $fine);
 }
 
-// 2. CONTROLLO DISPONIBILITÀ ORARIO (evitare sovrapposizioni)
-$stmt_check = $pdo->prepare("
+if (strtotime($inizio) >= strtotime($fine)) {
+    redirectWithError("L'orario di fine deve essere successivo all'orario di inizio.", $data, $inizio, $fine);
+}
+
+if (strtotime($data) < strtotime(date('Y-m-d'))) {
+    redirectWithError("Non puoi prenotare in una data passata.", $data, $inizio, $fine);
+}
+
+// 3. Recupero informazioni dell'Asset dal DB
+$stmt = $conn->prepare("SELECT tipo, nome FROM asset WHERE id = ?");
+$stmt->bind_param("i", $asset_id);
+$stmt->execute();
+$res = $stmt->get_result();
+if ($res->num_rows === 0) {
+    redirectWithError("La risorsa selezionata non esiste nel database.", $data, $inizio, $fine);
+}
+$asset = $res->fetch_assoc();
+$tipo_risorsa = $asset['tipo'];
+
+// 4. Controllo Sovrapposizioni (Qualcun altro ha già prenotato questo posto a quest'ora?)
+$stmt = $conn->prepare("
     SELECT id FROM prenotazioni 
-    WHERE data_prenotazione = ? 
-    AND risorsa_id = ? 
-    AND (slot_id = ? OR slot_id IS NULL OR ? = '')
+    WHERE asset_id = ? 
+    AND data_prenotazione = ? 
+    AND stato != 'annullata' 
     AND (ora_inizio < ? AND ora_fine > ?)
 ");
-$stmt_check->execute([$data_prenotazione, $asset_id, $slot_id, $slot_id, $ora_fine, $ora_inizio]);
-
-if ($stmt_check->rowCount() > 0) {
-    header("Location: prenotazione.php?error=Risorsa già occupata in questo orario.");
-    exit();
+// Logica sovrapposizione: inizio_esistente < fine_nuova E fine_esistente > inizio_nuova
+$stmt->bind_param("isss", $asset_id, $data, $fine, $inizio);
+$stmt->execute();
+if ($stmt->get_result()->num_rows > 0) {
+    redirectWithError("Questa risorsa è già occupata nell'orario selezionato.", $data, $inizio, $fine);
 }
 
-// 3. INSERIMENTO DATABASE
-try {
-    // Adatta il nome delle colonne a quelle effettive del tuo DB (`db.sql`)
-    $stmt_insert = $pdo->prepare("
-        INSERT INTO prenotazioni (utente_id, risorsa_id, slot_id, data_prenotazione, ora_inizio, ora_fine) 
-        VALUES (?, ?, ?, ?, ?, ?)
-    ");
-    $stmt_insert->execute([$user_id, $asset_id, $slot_id, $data_prenotazione, $ora_inizio, $ora_fine]);
+// 5. Controllo Limiti e Permessi dell'Utente per la giornata
+$prenotazioni_oggi = ['base' => 0, 'tech' => 0, 'meeting' => 0, 'parking' => 0];
 
-    // Ritorna con il flag success che innescherà il Popup
-    header("Location: prenotazione.php?success=1&data={$data_prenotazione}&inizio={$ora_inizio}&fine={$ora_fine}");
-    exit();
-
-} catch (PDOException $e) {
-    header("Location: prenotazione.php?error=Errore del server durante il salvataggio.");
-    exit();
+$stmt = $conn->prepare("
+    SELECT a.tipo, COUNT(*) as conteggio 
+    FROM prenotazioni p 
+    JOIN asset a ON p.asset_id = a.id 
+    WHERE p.utente_id = ? AND p.data_prenotazione = ? AND p.stato != 'annullata'
+    GROUP BY a.tipo
+");
+$stmt->bind_param("is", $utente_id, $data);
+if (!$stmt->execute()) {
+    redirectWithError("Errore nella lettura delle prenotazioni.", $data, $inizio, $fine);
 }
+$stmt->execute();
+$res_user_occ = $stmt->get_result();
+while ($row = $res_user_occ->fetch_assoc()) {
+    $prenotazioni_oggi[strtolower($row['tipo'])] = (int)$row['conteggio'];
+}
+
+$tot_scrivanie = $prenotazioni_oggi['base'] + $prenotazioni_oggi['tech'];
+
+if ($ruolo === 'dipendente') {
+    if ($tipo_risorsa === 'meeting') {
+        redirectWithError("Non hai i permessi per prenotare una Sala Riunioni.", $data, $inizio, $fine);
+    }
+    if (($tipo_risorsa === 'base' || $tipo_risorsa === 'tech') && $tot_scrivanie >= 1) {
+        redirectWithError("Hai già raggiunto il limite massimo (1 scrivania) per questa giornata.", $data, $inizio, $fine);
+    }
+    if ($tipo_risorsa === 'parking' && $prenotazioni_oggi['parking'] >= 1) {
+        redirectWithError("Hai già prenotato un posto auto per questa giornata.", $data, $inizio, $fine);
+    }
+} 
+elseif ($ruolo === 'coordinatore') {
+    if (($tipo_risorsa === 'base' || $tipo_risorsa === 'tech') && $tot_scrivanie >= 1) {
+        redirectWithError("Hai già raggiunto il limite massimo (1 scrivania) per questa giornata.", $data, $inizio, $fine);
+    }
+    if ($tipo_risorsa === 'meeting' && $prenotazioni_oggi['meeting'] >= 2) {
+        redirectWithError("Hai già raggiunto il limite massimo (2 sale riunioni) per questa giornata.", $data, $inizio, $fine);
+    }
+    if ($tipo_risorsa === 'parking' && $prenotazioni_oggi['parking'] >= 1) {
+        redirectWithError("Hai già prenotato un posto auto per questa giornata.", $data, $inizio, $fine);
+    }
+}
+// Gli 'amministratori' bypassano i limiti.
+
+// 6. Salvataggio della Prenotazione (Prepared Statement per Sicurezza SQL)
+$stmt = $conn->prepare("
+    INSERT INTO prenotazioni (utente_id, asset_id, data_prenotazione, ora_inizio, ora_fine, stato) 
+    VALUES (?, ?, ?, ?, ?, 'attiva')
+");
+$stmt->bind_param("iisss", $utente_id, $asset_id, $data, $inizio, $fine);
+
+if ($stmt->execute()) {
+    // Redirezione con successo!
+    $url = "prenotazione.php?success=" . urlencode("Prenotazione salvata con successo per " . $asset['nome'] . "!") . "&data=$data&inizio=$inizio&fine=$fine";
+    header("Location: $url");
+    exit();
+} else {
+    redirectWithError("Si è verificato un errore nel salvataggio. Riprova più tardi.", $data, $inizio, $fine);
+}
+
+$stmt->close();
+$conn->close();
 ?>
