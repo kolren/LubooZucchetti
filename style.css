@@ -73,3 +73,55 @@ body {
     height: 100%;
     fill: currentColor;
 }
+/* ==========================================================================
+   ANIMAZIONI FLUIDE STILE APPLE (PAGE LOAD) - VERSIONE DEFINITIVA
+   ========================================================================== */
+
+/* 1. Definisco l'animazione Apple (Morbida traslazione dal basso, opacità e micro-zoom) */
+@keyframes appleEnter {
+    0% {
+        opacity: 0;
+        transform: translateY(25px) scale(0.99);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* 2. Applica l'animazione a tutte le griglie di contenuto che si trovano DOPO la navbar */
+header ~ .grid {
+    opacity: 0; /* Invisibile prima di partire per evitare sfarfallii */
+    /* La curva cubic-bezier(0.22, 1, 0.36, 1) è la stessa che usa Apple in macOS/iOS */
+    animation: appleEnter 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    will-change: transform, opacity; /* Ottimizzazione GPU */
+}
+
+/* 3. Effetto Cascata Infallibile (Staggering)
+   Invece di usare nth-child (che si rompe se ci sono alert), usiamo il selettore ~ 
+   in modo incrementale per ritardare ogni griglia successiva. */
+   
+header ~ .grid { 
+    animation-delay: 0.05s; /* Prima griglia (es. Dati utente o Statistiche) */
+}
+
+header ~ .grid ~ .grid { 
+    animation-delay: 0.15s; /* Seconda griglia (es. Prenotazioni in arrivo) */
+}
+
+header ~ .grid ~ .grid ~ .grid { 
+    animation-delay: 0.25s; /* Terza griglia eventuale */
+}
+
+header ~ .grid ~ .grid ~ .grid ~ .grid { 
+    animation-delay: 0.35s; /* Quarta griglia eventuale */
+}
+
+/* ==========================================================================
+   FLUIDITÀ EXTRA PER HOVER SULLE CARD
+   ========================================================================== */
+.glass-panel, .ui-panel, .risorsa-item {
+    transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), 
+                box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+                filter 0.4s ease, opacity 0.4s ease, background-color 0.4s ease;
+}
