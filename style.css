@@ -22,57 +22,37 @@ body {
 .bg-booking-item { background: linear-gradient(145deg, #2C6B92, #3A7FA8); }
 .bg-booking-auto { background: linear-gradient(145deg, #2F6E58, #3F8C6F); }
 
-.bg-activity { background: linear-gradient(160deg, #184760, #215F7D); }
-.bg-progress-base { background-color: #355F75; }
-.bg-progress-fill { background: linear-gradient(to right, #5E8BFF, #9FA8FF); }
-.bg-btn-prenota { background: linear-gradient(145deg, #B3836A, #C89A80); }
-.bg-btn-gestisci { background: linear-gradient(145deg, #5C78B8, #6C8DD0); }
+.bg-activity { background: linear-gradient(160deg, #1E4D6B, #183F59); }
+.bg-progress-bg { background: rgba(255, 255, 255, 0.1); }
+.bg-progress-fill { background: linear-gradient(90deg, #36A482, #52D6AD); }
 
-/* Glass & UI Panels */
+.bg-btn-prenota { background: linear-gradient(145deg, #36A482, #2B8569); }
+.bg-btn-gestisci { background: linear-gradient(145deg, #E6A23C, #C78B33); }
+
+/* Utilities */
 .glass-panel {
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-}
-
-.ui-panel {
-    background: rgba(0, 51, 128, 0.24);
-    border-radius: 34px;
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.input-bg { background: rgba(99, 144, 180, 0.84); }
-.card-info { background: rgba(192, 199, 255, 0.55); }
-
-/* Custom Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
-    height: 5px;
+    height: 6px;
 }
-
-.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 10px;
+}
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.3);
-    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
 }
-
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.25);
 }
 
-/* Form Controls */
-::-webkit-calendar-picker-indicator {
-    filter: invert(1);
-    cursor: pointer;
-}
-
-/* Icons */
-.svg-icon-wrapper svg {
-    width: 100%;
-    height: 100%;
-    fill: currentColor;
-}
 /* ==========================================================================
    ANIMAZIONI FLUIDE STILE APPLE (PAGE LOAD) - VERSIONE DEFINITIVA
    ========================================================================== */
@@ -91,37 +71,22 @@ body {
 
 /* 2. Applica l'animazione a tutte le griglie di contenuto che si trovano DOPO la navbar */
 header ~ .grid {
-    opacity: 0; /* Invisibile prima di partire per evitare sfarfallii */
-    /* La curva cubic-bezier(0.22, 1, 0.36, 1) è la stessa che usa Apple in macOS/iOS */
+    opacity: 0; 
     animation: appleEnter 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-    will-change: transform, opacity; /* Ottimizzazione GPU */
+    will-change: transform, opacity; 
 }
 
-/* 3. Effetto Cascata Infallibile (Staggering)
-   Invece di usare nth-child (che si rompe se ci sono alert), usiamo il selettore ~ 
-   in modo incrementale per ritardare ogni griglia successiva. */
-   
-header ~ .grid { 
-    animation-delay: 0.05s; /* Prima griglia (es. Dati utente o Statistiche) */
-}
-
-header ~ .grid ~ .grid { 
-    animation-delay: 0.15s; /* Seconda griglia (es. Prenotazioni in arrivo) */
-}
-
-header ~ .grid ~ .grid ~ .grid { 
-    animation-delay: 0.25s; /* Terza griglia eventuale */
-}
-
-header ~ .grid ~ .grid ~ .grid ~ .grid { 
-    animation-delay: 0.35s; /* Quarta griglia eventuale */
-}
-
+/* 3. Effetto Cascata Infallibile (Staggering) */
+header ~ .grid { animation-delay: 0.05s; }
+header ~ .grid ~ .grid { animation-delay: 0.15s; }
+header ~ .grid ~ .grid ~ .grid { animation-delay: 0.25s; }
+header ~ .grid ~ .grid ~ .grid ~ .grid { animation-delay: 0.35s; }
 /* ==========================================================================
    FLUIDITÀ EXTRA PER HOVER SULLE CARD
    ========================================================================== */
-.glass-panel, .ui-panel, .risorsa-item {
+.glass-panel, .ui-panel {
+    /* Rimosso "filter" dalla transizione per evitare i glitch dell'ombra scura */
     transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), 
                 box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1),
-                filter 0.4s ease, opacity 0.4s ease, background-color 0.4s ease;
+                opacity 0.4s ease, background-color 0.4s ease;
 }

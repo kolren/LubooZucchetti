@@ -64,12 +64,106 @@ CREATE TABLE asset (
     INDEX idx_ricerca (piano, tipo),
     INDEX idx_tipo_asset (tipo)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
+TRUNCATE TABLE asset; 
 INSERT INTO asset (tipo, nome, codice_univoco, armadietto, piano) VALUES
-('base', 'Scrivania Base 1', 'desk-b-1', 'ARM-1', 'Piano 1'),
-('tech', 'Scrivania Tech 1', 'desk-t-1', 'ARM-T1', 'Piano 2'),
+-- PIANO 1: Sale Riunioni (1-5)
 ('meeting', 'Sala Meeting 1', 'room-1', 'N/A', 'Piano 1'),
-('parking', 'Posto Auto 1', 'park-1', 'N/A', 'Parcheggio');
+('meeting', 'Sala Meeting 2', 'room-2', 'N/A', 'Piano 1'),
+('meeting', 'Sala Meeting 3', 'room-3', 'N/A', 'Piano 1'),
+('meeting', 'Sala Meeting 4', 'room-4', 'N/A', 'Piano 1'),
+('meeting', 'Sala Meeting 5', 'room-5', 'N/A', 'Piano 1'),
+
+-- PIANO 2: Sale Riunioni (6-10)
+('meeting', 'Sala Meeting 6', 'room-6', 'N/A', 'Piano 2'),
+('meeting', 'Sala Meeting 7', 'room-7', 'N/A', 'Piano 2'),
+('meeting', 'Sala Meeting 8', 'room-8', 'N/A', 'Piano 2'),
+('meeting', 'Sala Meeting 9', 'room-9', 'N/A', 'Piano 2'),
+('meeting', 'Sala Meeting 10', 'room-10', 'N/A', 'Piano 2'),
+
+-- PIANO 1: Scrivanie Tech (1-12)
+('tech', 'Scrivania Tech 1', 'desk-t-1', 'ARM-T1', 'Piano 1'),
+('tech', 'Scrivania Tech 2', 'desk-t-2', 'ARM-T2', 'Piano 1'),
+('tech', 'Scrivania Tech 3', 'desk-t-3', 'ARM-T3', 'Piano 1'),
+('tech', 'Scrivania Tech 4', 'desk-t-4', 'ARM-T4', 'Piano 1'),
+('tech', 'Scrivania Tech 5', 'desk-t-5', 'ARM-T5', 'Piano 1'),
+('tech', 'Scrivania Tech 6', 'desk-t-6', 'ARM-T6', 'Piano 1'),
+('tech', 'Scrivania Tech 7', 'desk-t-7', 'ARM-T7', 'Piano 1'),
+('tech', 'Scrivania Tech 8', 'desk-t-8', 'ARM-T8', 'Piano 1'),
+('tech', 'Scrivania Tech 9', 'desk-t-9', 'ARM-T9', 'Piano 1'),
+('tech', 'Scrivania Tech 10', 'desk-t-10', 'ARM-T10', 'Piano 1'),
+('tech', 'Scrivania Tech 11', 'desk-t-11', 'ARM-T11', 'Piano 1'),
+('tech', 'Scrivania Tech 12', 'desk-t-12', 'ARM-T12', 'Piano 1'),
+
+-- PIANO 2: Scrivanie Tech (13-20)
+('tech', 'Scrivania Tech 13', 'desk-t-13', 'ARM-T13', 'Piano 2'),
+('tech', 'Scrivania Tech 14', 'desk-t-14', 'ARM-T14', 'Piano 2'),
+('tech', 'Scrivania Tech 15', 'desk-t-15', 'ARM-T15', 'Piano 2'),
+('tech', 'Scrivania Tech 16', 'desk-t-16', 'ARM-T16', 'Piano 2'),
+('tech', 'Scrivania Tech 17', 'desk-t-17', 'ARM-T17', 'Piano 2'),
+('tech', 'Scrivania Tech 18', 'desk-t-18', 'ARM-T18', 'Piano 2'),
+('tech', 'Scrivania Tech 19', 'desk-t-19', 'ARM-T19', 'Piano 2'),
+('tech', 'Scrivania Tech 20', 'desk-t-20', 'ARM-T20', 'Piano 2'),
+
+-- PIANO 1: Scrivanie Base (1-14)
+('base', 'Scrivania Base 1', 'desk-b-1', 'ARM-B1', 'Piano 1'),
+('base', 'Scrivania Base 2', 'desk-b-2', 'ARM-B2', 'Piano 1'),
+('base', 'Scrivania Base 3', 'desk-b-3', 'ARM-B3', 'Piano 1'),
+('base', 'Scrivania Base 4', 'desk-b-4', 'ARM-B4', 'Piano 1'),
+('base', 'Scrivania Base 5', 'desk-b-5', 'ARM-B5', 'Piano 1'),
+('base', 'Scrivania Base 6', 'desk-b-6', 'ARM-B6', 'Piano 1'),
+('base', 'Scrivania Base 7', 'desk-b-7', 'ARM-B7', 'Piano 1'),
+('base', 'Scrivania Base 8', 'desk-b-8', 'ARM-B8', 'Piano 1'),
+('base', 'Scrivania Base 9', 'desk-b-9', 'ARM-B9', 'Piano 1'),
+('base', 'Scrivania Base 10', 'desk-b-10', 'ARM-B10', 'Piano 1'),
+('base', 'Scrivania Base 11', 'desk-b-11', 'ARM-B11', 'Piano 1'),
+('base', 'Scrivania Base 12', 'desk-b-12', 'ARM-B12', 'Piano 1'),
+('base', 'Scrivania Base 13', 'desk-b-13', 'ARM-B13', 'Piano 1'),
+('base', 'Scrivania Base 14', 'desk-b-14', 'ARM-B14', 'Piano 1'),
+
+-- PIANO 2: Scrivanie Base (15-30)
+('base', 'Scrivania Base 15', 'desk-b-15', 'ARM-B15', 'Piano 2'),
+('base', 'Scrivania Base 16', 'desk-b-16', 'ARM-B16', 'Piano 2'),
+('base', 'Scrivania Base 17', 'desk-b-17', 'ARM-B17', 'Piano 2'),
+('base', 'Scrivania Base 18', 'desk-b-18', 'ARM-B18', 'Piano 2'),
+('base', 'Scrivania Base 19', 'desk-b-19', 'ARM-B19', 'Piano 2'),
+('base', 'Scrivania Base 20', 'desk-b-20', 'ARM-B20', 'Piano 2'),
+('base', 'Scrivania Base 21', 'desk-b-21', 'ARM-B21', 'Piano 2'),
+('base', 'Scrivania Base 22', 'desk-b-22', 'ARM-B22', 'Piano 2'),
+('base', 'Scrivania Base 23', 'desk-b-23', 'ARM-B23', 'Piano 2'),
+('base', 'Scrivania Base 24', 'desk-b-24', 'ARM-B24', 'Piano 2'),
+('base', 'Scrivania Base 25', 'desk-b-25', 'ARM-B25', 'Piano 2'),
+('base', 'Scrivania Base 26', 'desk-b-26', 'ARM-B26', 'Piano 2'),
+('base', 'Scrivania Base 27', 'desk-b-27', 'ARM-B27', 'Piano 2'),
+('base', 'Scrivania Base 28', 'desk-b-28', 'ARM-B28', 'Piano 2'),
+('base', 'Scrivania Base 29', 'desk-b-29', 'ARM-B29', 'Piano 2'),
+('base', 'Scrivania Base 30', 'desk-b-30', 'ARM-B30', 'Piano 2'),
+
+-- PARCHEGGIO (1-25)
+('parking', 'Posto Auto 1', 'park-1', 'N/A', 'Parcheggio'),
+('parking', 'Posto Auto 2', 'park-2', 'N/A', 'Parcheggio'),
+('parking', 'Posto Auto 3', 'park-3', 'N/A', 'Parcheggio'),
+('parking', 'Posto Auto Disabili 4', 'park-4', 'N/A', 'Parcheggio'),
+('parking', 'Posto Auto Disabili 5', 'park-5', 'N/A', 'Parcheggio'),
+('parking', 'Posto Auto 6', 'park-6', 'N/A', 'Parcheggio'),
+('parking', 'Posto Auto 7', 'park-7', 'N/A', 'Parcheggio'),
+('parking', 'Posto Auto 8', 'park-8', 'N/A', 'Parcheggio'),
+('parking', 'Posto Auto 9', 'park-9', 'N/A', 'Parcheggio'),
+('parking', 'Posto Auto 10', 'park-10', 'N/A', 'Parcheggio'),
+('parking', 'Posto Auto 11', 'park-11', 'N/A', 'Parcheggio'),
+('parking', 'Posto Auto 12', 'park-12', 'N/A', 'Parcheggio'),
+('parking', 'Posto Auto 13', 'park-13', 'N/A', 'Parcheggio'),
+('parking', 'Posto Auto 14', 'park-14', 'N/A', 'Parcheggio'),
+('parking', 'Posto Auto 15', 'park-15', 'N/A', 'Parcheggio'),
+('parking', 'Posto Auto 16', 'park-16', 'N/A', 'Parcheggio'),
+('parking', 'Posto Auto 17', 'park-17', 'N/A', 'Parcheggio'),
+('parking', 'Posto Auto 18', 'park-18', 'N/A', 'Parcheggio'),
+('parking', 'Posto Auto 19', 'park-19', 'N/A', 'Parcheggio'),
+('parking', 'Posto Auto 20', 'park-20', 'N/A', 'Parcheggio'),
+('parking', 'Posto Auto 21', 'park-21', 'N/A', 'Parcheggio'),
+('parking', 'Posto Auto 22', 'park-22', 'N/A', 'Parcheggio'),
+('parking', 'Posto Auto 23', 'park-23', 'N/A', 'Parcheggio'),
+('parking', 'Posto Auto 24', 'park-24', 'N/A', 'Parcheggio'),
+('parking', 'Posto Auto 25', 'park-25', 'N/A', 'Parcheggio');
 
 -- ==========================================
 -- TABELLA PRENOTAZIONI

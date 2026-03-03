@@ -49,7 +49,7 @@ if ($res_assets) {
     }
 }
 
-// Controlla prenotazioni altrui per colorare di rosso
+// Controlla prenotazioni altrui
 if (!empty($oggi) && !empty($ora_inizio) && !empty($ora_fine)) {
     $d = $conn->real_escape_string($oggi);
     $i = $conn->real_escape_string($ora_inizio);
@@ -67,7 +67,7 @@ if (!empty($oggi) && !empty($ora_inizio) && !empty($ora_fine)) {
     }
 }
 
-// CONTEGGIO PRENOTAZIONI ODIERNE DELL'UTENTE (per logica Frontend No-Refresh)
+// CONTEGGIO PRENOTAZIONI ODIERNE DELL'UTENTE
 $prenotazioni_oggi = ['base' => 0, 'tech' => 0, 'meeting' => 0, 'parking' => 0];
 $stmt_oggi = $conn->prepare("
     SELECT a.tipo, COUNT(*) as conteggio 
@@ -96,27 +96,90 @@ $sezioni = [
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prenotazione - LubooZucchetti</title>
-    <style>
-        .svg-slot { fill: #36A482; cursor: pointer; transition: all 0.2s; } 
-        .svg-slot:hover { filter: brightness(1.2); transform: scale(1.05); }
-        .svg-slot.occupato { fill: #ef4444; pointer-events: none; } 
-        .svg-slot.selezionato { fill: #ffffff; } 
+<style>
+    /* =======================================
+       STILI ASSET MAPPA - FIX RENDER ARTEFATTI
+       ======================================= */
+    .svg-slot { 
+        fill: #36A482; 
+        cursor: pointer; 
+        transform-origin: center;
+        transform-box: fill-box;
+        /* Rimossa la transizione sul filter */
+        transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), fill 0.2s ease, opacity 0.2s ease;
+        backface-visibility: hidden; 
+        -webkit-font-smoothing: antialiased;
+        will-change: transform, opacity;
+    } 
+    .svg-slot:hover { 
+        /* Usiamo l'opacità invece della luminosità per evitare il contorno nero */
+        opacity: 0.8;
+        transform: scale(1.15); 
+    }
+    .svg-slot.occupato { fill: #ef4444; pointer-events: none; opacity: 1; } 
+    .svg-slot.selezionato { fill: #ffffff; opacity: 1; } 
 
-        .png-risorsa { background-color: #36A482; cursor: pointer; transition: all 0.2s; mask-size: contain; -webkit-mask-size: contain; mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat; mask-position: center; -webkit-mask-position: center; }
-        .png-risorsa:hover { filter: brightness(1.2); transform: scale(1.05); }
-        .png-risorsa.occupato { background-color: #ef4444; pointer-events: none; }
-        .png-risorsa.selezionato { background-color: #ffffff; }
+    .png-risorsa { 
+        background-color: #36A482; 
+        cursor: pointer; 
+        mask-size: contain; 
+        -webkit-mask-size: contain; 
+        mask-repeat: no-repeat; 
+        -webkit-mask-repeat: no-repeat; 
+        mask-position: center; 
+        -webkit-mask-position: center; 
+        transform-origin: center;
+        /* Rimossa transizione sul filter */
+        transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, opacity 0.2s ease;
+        backface-visibility: hidden;
+        -webkit-font-smoothing: antialiased;
+        will-change: transform, opacity;
+    }
+    .png-risorsa:hover { 
+        opacity: 0.85;
+        transform: scale(1.12); 
+    }
+    .png-risorsa.occupato { background-color: #ef4444; pointer-events: none; opacity: 1; }
+    .png-risorsa.selezionato { background-color: #ffffff; opacity: 1; }
 
-        /* Stile specifico per limitazioni dipendenti (blur UI) */
-        .risorsa-vietata { opacity: 0.4; filter: blur(2px) grayscale(50%); cursor: not-allowed !important; }
-        .risorsa-vietata:hover { filter: blur(0px) grayscale(0%); transform: none; }
+    /* Stile specifico per limitazioni dipendenti (blur UI) */
+    .risorsa-vietata { 
+        opacity: 0.4; 
+        filter: blur(2px) grayscale(50%); 
+        cursor: not-allowed !important; 
+        /* Isolamento per evitare conflitti con il blur */
+        transform: translateZ(0);
+    }
+    .risorsa-vietata:hover { 
+        filter: blur(0px) grayscale(0%); 
+        transform: none; 
+        opacity: 1;
+    }
 
-        .parcheggio-grid { display: grid; grid-template-columns: repeat(5, 40px); gap: 10px; justify-content: center; align-items: center; width: 100%; height: 100%; }
-        
-        input[type="time"]::-webkit-calendar-picker-indicator,
-        input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; transition: 0.2s; filter: invert(1);}
-        input[type="time"]::-webkit-calendar-picker-indicator:hover,
-        input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+    /* Griglia del parcheggio */
+    .parcheggio-grid { 
+        display: grid; 
+        grid-template-columns: repeat(5, 35px); 
+        gap: 15px; 
+        justify-content: center; 
+        align-items: center; 
+        width: 100%; 
+        height: 100%; 
+    }
+    
+    /* Stile personalizzato per gli input calendario/orologio */
+    input[type="time"]::-webkit-calendar-picker-indicator,
+    input[type="date"]::-webkit-calendar-picker-indicator { 
+        cursor: pointer; 
+        opacity: 0.6; 
+        transition: 0.2s; 
+        filter: invert(1);
+    }
+    input[type="time"]::-webkit-calendar-picker-indicator:hover,
+    input[type="date"]::-webkit-calendar-picker-indicator:hover { 
+        opacity: 1; 
+    }
+</style>
     </style>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -172,7 +235,6 @@ $sezioni = [
                 
                 <div class="flex flex-col gap-3 mb-8">
                     <?php foreach ($sezioni as $id => $info): 
-                        // Sfumatura UI per le sezioni vietate
                         $is_vietato = ($ruoloUtente === 'dipendente' && $id === 'meeting');
                         $opacita = $is_vietato ? 'opacity-40 blur-[1px]' : '';
                     ?>
@@ -230,7 +292,7 @@ $sezioni = [
                     
                     <?php if ($mappa_attiva === 'piano1'): ?>
                         
-                        <div class="absolute flex items-center justify-center gap-6" style="top: 10%; left: 50%; transform: translateX(-50%); width: 85%; height: 90px; background-color: rgba(30,58,138,0.4); border-radius: 15px;">
+                        <div class="absolute flex items-center justify-center gap-4" style="top: 8%; left: 50%; transform: translateX(-50%); width: 80%; max-width: 450px; height: 70px; background-color: rgba(30,58,138,0.4); border-radius: 15px;">
                             <?php for($i=1; $i<=5; $i++): 
                                 $cid = "room-$i";
                                 $db_id = isset($assets_info[$cid]) ? $assets_info[$cid]['id'] : '';
@@ -239,43 +301,43 @@ $sezioni = [
                                 $locker = isset($assets_info[$cid]) ? $assets_info[$cid]['armadietto'] : 'N/A';
                                 $nome = isset($assets_info[$cid]) ? $assets_info[$cid]['nome'] : "Sala $i";
                             ?>
-                            <div class="png-risorsa risorsa-item <?php echo $occ_class . ' ' . $vietato_class; ?>" data-dbid="<?php echo $db_id; ?>" data-id="<?php echo $cid; ?>" data-tipo="meeting" data-locker="<?php echo $locker; ?>" data-nome="<?php echo $nome; ?>" style="width: 70px; height: 55px; -webkit-mask-image: url('src/AssetMappa/SalaRiunioni.png'); mask-image: url('src/AssetMappa/SalaRiunioni.png');"></div>
+                            <div class="png-risorsa risorsa-item <?php echo $occ_class . ' ' . $vietato_class; ?>" data-dbid="<?php echo $db_id; ?>" data-id="<?php echo $cid; ?>" data-tipo="meeting" data-locker="<?php echo $locker; ?>" data-nome="<?php echo $nome; ?>" style="width: 45px; height: 35px; -webkit-mask-image: url('src/AssetMappa/SalaRiunioni.png'); mask-image: url('src/AssetMappa/SalaRiunioni.png');"></div>
                             <?php endfor; ?>
                         </div>
 
-                        <div class="absolute" style="top: 35%; left: 50%; transform: translateX(-50%);">
-                            <svg width="480" height="130" viewBox="0 0 480 130">
-                                <rect width="480" height="130" rx="15" ry="15" fill="#FFA500" opacity="0.8" />
+                        <div class="absolute" style="top: 32%; left: 50%; transform: translateX(-50%);">
+                            <svg width="400" height="100" viewBox="0 0 400 100">
+                                <rect width="400" height="100" rx="15" ry="15" fill="#FFA500" opacity="0.8" />
                                 <?php
                                 $tech_slots = [];
-                                for($i=1; $i<=6; $i++) $tech_slots[] = ['cx'=> 40 + ($i-1)*80, 'cy'=>40, 'id'=>"desk-t-$i"];
-                                for($i=7; $i<=12; $i++) $tech_slots[] = ['cx'=> 40 + ($i-7)*80, 'cy'=>90, 'id'=>"desk-t-$i"];
+                                for($i=1; $i<=6; $i++) $tech_slots[] = ['cx'=> 40 + ($i-1)*65, 'cy'=>30, 'id'=>"desk-t-$i"];
+                                for($i=7; $i<=12; $i++) $tech_slots[] = ['cx'=> 40 + ($i-7)*65, 'cy'=>70, 'id'=>"desk-t-$i"];
                                 foreach($tech_slots as $slot) {
                                     $cid = $slot['id'];
                                     $db_id = isset($assets_info[$cid]) ? $assets_info[$cid]['id'] : '';
                                     $occ_class = in_array($cid, $occupati) ? 'occupato' : '';
                                     $locker = isset($assets_info[$cid]) ? $assets_info[$cid]['armadietto'] : 'N/A';
                                     $nome = isset($assets_info[$cid]) ? $assets_info[$cid]['nome'] : $cid;
-                                    echo "<circle cx='{$slot['cx']}' cy='{$slot['cy']}' r='14' class='svg-slot risorsa-item {$occ_class}' data-dbid='{$db_id}' data-id='{$cid}' data-tipo='tech' data-locker='{$locker}' data-nome='{$nome}'/>";
+                                    echo "<circle cx='{$slot['cx']}' cy='{$slot['cy']}' r='11' class='svg-slot risorsa-item {$occ_class}' data-dbid='{$db_id}' data-id='{$cid}' data-tipo='tech' data-locker='{$locker}' data-nome='{$nome}'/>";
                                 }
                                 ?>
                             </svg>
                         </div>
 
-                        <div class="absolute" style="top: 75%; left: 50%; transform: translateX(-50%);">
-                            <svg width="560" height="130" viewBox="0 0 560 130">
-                                <rect width="560" height="130" rx="15" ry="15" fill="#36A482" opacity="0.8" />
+                        <div class="absolute" style="top: 65%; left: 50%; transform: translateX(-50%);">
+                            <svg width="470" height="100" viewBox="0 0 470 100">
+                                <rect width="470" height="100" rx="15" ry="15" fill="#36A482" opacity="0.8" />
                                 <?php
                                 $base_slots = [];
-                                for($i=1; $i<=7; $i++) $base_slots[] = ['cx'=> 40 + ($i-1)*80, 'cy'=>40, 'id'=>"desk-b-$i"];
-                                for($i=8; $i<=14; $i++) $base_slots[] = ['cx'=> 40 + ($i-8)*80, 'cy'=>90, 'id'=>"desk-b-$i"];
+                                for($i=1; $i<=7; $i++) $base_slots[] = ['cx'=> 40 + ($i-1)*65, 'cy'=>30, 'id'=>"desk-b-$i"];
+                                for($i=8; $i<=14; $i++) $base_slots[] = ['cx'=> 40 + ($i-8)*65, 'cy'=>70, 'id'=>"desk-b-$i"];
                                 foreach($base_slots as $slot) {
                                     $cid = $slot['id'];
                                     $db_id = isset($assets_info[$cid]) ? $assets_info[$cid]['id'] : '';
                                     $occ_class = in_array($cid, $occupati) ? 'occupato' : '';
                                     $locker = isset($assets_info[$cid]) ? $assets_info[$cid]['armadietto'] : 'N/A';
                                     $nome = isset($assets_info[$cid]) ? $assets_info[$cid]['nome'] : $cid;
-                                    echo "<circle cx='{$slot['cx']}' cy='{$slot['cy']}' r='14' class='svg-slot risorsa-item {$occ_class}' data-dbid='{$db_id}' data-id='{$cid}' data-tipo='base' data-locker='{$locker}' data-nome='{$nome}'/>";
+                                    echo "<circle cx='{$slot['cx']}' cy='{$slot['cy']}' r='11' class='svg-slot risorsa-item {$occ_class}' data-dbid='{$db_id}' data-id='{$cid}' data-tipo='base' data-locker='{$locker}' data-nome='{$nome}'/>";
                                 }
                                 ?>
                             </svg>
@@ -283,7 +345,7 @@ $sezioni = [
 
                     <?php elseif ($mappa_attiva === 'piano2'): ?>
 
-                        <div class="absolute flex items-center justify-center gap-6" style="top: 10%; left: 45%; transform: translateX(-50%); width: 75%; height: 90px; background-color: rgba(30,58,138,0.4); border-radius: 15px;">
+                        <div class="absolute flex items-center justify-center gap-3" style="top: 8%; left: 40%; transform: translateX(-50%); width: 70%; max-width: 350px; height: 70px; background-color: rgba(30,58,138,0.4); border-radius: 15px;">
                             <?php for($i=6; $i<=10; $i++): 
                                 $cid = "room-$i";
                                 $db_id = isset($assets_info[$cid]) ? $assets_info[$cid]['id'] : '';
@@ -292,61 +354,61 @@ $sezioni = [
                                 $locker = isset($assets_info[$cid]) ? $assets_info[$cid]['armadietto'] : 'N/A';
                                 $nome = isset($assets_info[$cid]) ? $assets_info[$cid]['nome'] : "Sala $i";
                             ?>
-                            <div class="png-risorsa risorsa-item <?php echo $occ_class . ' ' . $vietato_class; ?>" data-dbid="<?php echo $db_id; ?>" data-id="<?php echo $cid; ?>" data-tipo="meeting" data-locker="<?php echo $locker; ?>" data-nome="<?php echo $nome; ?>" style="width: 60px; height: 50px; -webkit-mask-image: url('src/AssetMappa/SalaRiunioni.png'); mask-image: url('src/AssetMappa/SalaRiunioni.png');"></div>
+                            <div class="png-risorsa risorsa-item <?php echo $occ_class . ' ' . $vietato_class; ?>" data-dbid="<?php echo $db_id; ?>" data-id="<?php echo $cid; ?>" data-tipo="meeting" data-locker="<?php echo $locker; ?>" data-nome="<?php echo $nome; ?>" style="width: 45px; height: 35px; -webkit-mask-image: url('src/AssetMappa/SalaRiunioni.png'); mask-image: url('src/AssetMappa/SalaRiunioni.png');"></div>
                             <?php endfor; ?>
                         </div>
 
-                        <div class="absolute" style="top: 35%; left: 45%; transform: translateX(-50%);">
-                            <svg width="340" height="130" viewBox="0 0 340 130">
-                                <rect width="340" height="130" rx="15" ry="15" fill="#FFA500" opacity="0.8" />
+                        <div class="absolute" style="top: 32%; left: 40%; transform: translateX(-50%);">
+                            <svg width="280" height="100" viewBox="0 0 280 100">
+                                <rect width="280" height="100" rx="15" ry="15" fill="#FFA500" opacity="0.8" />
                                 <?php
                                 $tech_slots = [];
-                                for($i=13; $i<=16; $i++) $tech_slots[] = ['cx'=> 40 + ($i-13)*86, 'cy'=>40, 'id'=>"desk-t-$i"];
-                                for($i=17; $i<=20; $i++) $tech_slots[] = ['cx'=> 40 + ($i-17)*86, 'cy'=>90, 'id'=>"desk-t-$i"];
+                                for($i=13; $i<=16; $i++) $tech_slots[] = ['cx'=> 40 + ($i-13)*65, 'cy'=>30, 'id'=>"desk-t-$i"];
+                                for($i=17; $i<=20; $i++) $tech_slots[] = ['cx'=> 40 + ($i-17)*65, 'cy'=>70, 'id'=>"desk-t-$i"];
                                 foreach($tech_slots as $slot) {
                                     $cid = $slot['id'];
                                     $db_id = isset($assets_info[$cid]) ? $assets_info[$cid]['id'] : '';
                                     $occ_class = in_array($cid, $occupati) ? 'occupato' : '';
                                     $locker = isset($assets_info[$cid]) ? $assets_info[$cid]['armadietto'] : 'N/A';
                                     $nome = isset($assets_info[$cid]) ? $assets_info[$cid]['nome'] : $cid;
-                                    echo "<circle cx='{$slot['cx']}' cy='{$slot['cy']}' r='14' class='svg-slot risorsa-item {$occ_class}' data-dbid='{$db_id}' data-id='{$cid}' data-tipo='tech' data-locker='{$locker}' data-nome='{$nome}'/>";
+                                    echo "<circle cx='{$slot['cx']}' cy='{$slot['cy']}' r='11' class='svg-slot risorsa-item {$occ_class}' data-dbid='{$db_id}' data-id='{$cid}' data-tipo='tech' data-locker='{$locker}' data-nome='{$nome}'/>";
                                 }
                                 ?>
                             </svg>
                         </div>
 
-                        <div class="absolute" style="top: 75%; left: 45%; transform: translateX(-50%);">
-                            <svg width="420" height="130" viewBox="0 0 420 130">
-                                <rect width="420" height="130" rx="15" ry="15" fill="#36A482" opacity="0.8" />
+                        <div class="absolute" style="top: 65%; left: 40%; transform: translateX(-50%);">
+                            <svg width="340" height="100" viewBox="0 0 340 100">
+                                <rect width="340" height="100" rx="15" ry="15" fill="#36A482" opacity="0.8" />
                                 <?php
                                 $base_slots = [];
-                                for($i=15; $i<=19; $i++) $base_slots[] = ['cx'=> 40 + ($i-15)*85, 'cy'=>40, 'id'=>"desk-b-$i"];
-                                for($i=20; $i<=24; $i++) $base_slots[] = ['cx'=> 40 + ($i-20)*85, 'cy'=>90, 'id'=>"desk-b-$i"];
+                                for($i=15; $i<=19; $i++) $base_slots[] = ['cx'=> 40 + ($i-15)*65, 'cy'=>30, 'id'=>"desk-b-$i"];
+                                for($i=20; $i<=24; $i++) $base_slots[] = ['cx'=> 40 + ($i-20)*65, 'cy'=>70, 'id'=>"desk-b-$i"];
                                 foreach($base_slots as $slot) {
                                     $cid = $slot['id'];
                                     $db_id = isset($assets_info[$cid]) ? $assets_info[$cid]['id'] : '';
                                     $occ_class = in_array($cid, $occupati) ? 'occupato' : '';
                                     $locker = isset($assets_info[$cid]) ? $assets_info[$cid]['armadietto'] : 'N/A';
                                     $nome = isset($assets_info[$cid]) ? $assets_info[$cid]['nome'] : $cid;
-                                    echo "<circle cx='{$slot['cx']}' cy='{$slot['cy']}' r='14' class='svg-slot risorsa-item {$occ_class}' data-dbid='{$db_id}' data-id='{$cid}' data-tipo='base' data-locker='{$locker}' data-nome='{$nome}'/>";
+                                    echo "<circle cx='{$slot['cx']}' cy='{$slot['cy']}' r='11' class='svg-slot risorsa-item {$occ_class}' data-dbid='{$db_id}' data-id='{$cid}' data-tipo='base' data-locker='{$locker}' data-nome='{$nome}'/>";
                                 }
                                 ?>
                             </svg>
                         </div>
 
-                        <div class="absolute" style="top: 15%; right: 4%;">
-                            <svg width="80" height="490" viewBox="0 0 80 490">
-                                <rect width="80" height="490" rx="15" ry="15" fill="#36A482" opacity="0.8" />
+                        <div class="absolute" style="top: 15%; right: 5%;">
+                            <svg width="70" height="400" viewBox="0 0 70 400">
+                                <rect width="70" height="400" rx="15" ry="15" fill="#36A482" opacity="0.8" />
                                 <?php
                                 $base_slots = [];
-                                for($i=25; $i<=30; $i++) $base_slots[] = ['cx'=> 40, 'cy'=> 45 + ($i-25)*80, 'id'=>"desk-b-$i"];
+                                for($i=25; $i<=30; $i++) $base_slots[] = ['cx'=> 35, 'cy'=> 40 + ($i-25)*65, 'id'=>"desk-b-$i"];
                                 foreach($base_slots as $slot) {
                                     $cid = $slot['id'];
                                     $db_id = isset($assets_info[$cid]) ? $assets_info[$cid]['id'] : '';
                                     $occ_class = in_array($cid, $occupati) ? 'occupato' : '';
                                     $locker = isset($assets_info[$cid]) ? $assets_info[$cid]['armadietto'] : 'N/A';
                                     $nome = isset($assets_info[$cid]) ? $assets_info[$cid]['nome'] : $cid;
-                                    echo "<circle cx='{$slot['cx']}' cy='{$slot['cy']}' r='14' class='svg-slot risorsa-item {$occ_class}' data-dbid='{$db_id}' data-id='{$cid}' data-tipo='base' data-locker='{$locker}' data-nome='{$nome}'/>";
+                                    echo "<circle cx='{$slot['cx']}' cy='{$slot['cy']}' r='11' class='svg-slot risorsa-item {$occ_class}' data-dbid='{$db_id}' data-id='{$cid}' data-tipo='base' data-locker='{$locker}' data-nome='{$nome}'/>";
                                 }
                                 ?>
                             </svg>
@@ -367,7 +429,7 @@ $sezioni = [
                                     $locker = isset($assets_info[$id_posto]) ? $assets_info[$id_posto]['armadietto'] : 'N/A';
                                     $nome = isset($assets_info[$id_posto]) ? $assets_info[$id_posto]['nome'] : "Parcheggio {$contatore}";
                                     
-                                    echo "<div class='png-risorsa risorsa-item {$occ_class}' data-dbid='{$db_id}' data-id='{$id_posto}' data-tipo='parking' data-locker='{$locker}' data-nome='{$nome}' style='width:38px; height:65px; -webkit-mask-image: url(\"{$mask_url}\"); mask-image: url(\"{$mask_url}\");'></div>";
+                                    echo "<div class='png-risorsa risorsa-item {$occ_class}' data-dbid='{$db_id}' data-id='{$id_posto}' data-tipo='parking' data-locker='{$locker}' data-nome='{$nome}' style='width:35px; height:55px; -webkit-mask-image: url(\"{$mask_url}\"); mask-image: url(\"{$mask_url}\");'></div>";
                                     $contatore++;
                                 }
                             }
@@ -447,9 +509,8 @@ $sezioni = [
             </div>
             <h3 class="text-2xl font-black text-white mb-2 uppercase tracking-wide">Prenotazione Confermata!</h3>
             <p id="successo-msg" class="text-[#BFD6E8] text-sm mb-8 font-medium">La tua postazione è stata riservata correttamente.</p>
-            
             <div class="flex flex-col gap-3">
-                <a href="gestisci.php" class="w-full bg-[#36A482] hover:bg-[#2b8569] py-3.5 rounded-xl text-white shadow-lg transition-all font-bold uppercase tracking-wider text-sm border border-[#36A482]/50">Gestisci le tue prenotazioni</a>
+                <a href="gestisci.php" class="w-full bg-[#36A482] hover:bg-[#2b8569] py-3.5 rounded-xl text-white shadow-lg transition-all font-bold uppercase tracking-wider text-sm border border-[#36A482]/50">Gestisci prenotazioni</a>
                 <button type="button" onclick="chiudiModal('modal-successo')" class="w-full py-3.5 rounded-xl border border-white/20 text-white hover:bg-white/10 transition-all font-bold uppercase tracking-wider text-sm shadow-md">Prenota Ancora</button>
             </div>
         </div>
@@ -462,11 +523,9 @@ $sezioni = [
             echo json_encode($icone_js);
         ?>;
         
-        // Dati iniettati dal PHP per i controlli Frontend "No Refresh"
         const prenotaOggi = <?php echo json_encode($prenotazioni_oggi); ?>;
         const ruoloUtente = '<?php echo $ruoloUtente; ?>';
 
-        // GESTIONE MODALI ANIMATI
         function mostraErrore(titolo, messaggio) {
             document.getElementById('errore-titolo').innerText = titolo;
             document.getElementById('errore-msg').innerText = messaggio;
@@ -503,22 +562,18 @@ $sezioni = [
             setTimeout(() => {
                 modal.classList.add('hidden');
                 modal.classList.remove('flex');
-                
-                // Se era successo, ripulisci l'URL per pulizia
                 if(modalId === 'modal-successo' || modalId === 'modal-errore') {
                     window.history.replaceState({}, document.title, window.location.pathname);
                 }
             }, 300);
         }
 
-        // AUTO-TRIGGER MODALI IN BASE A GET URL (ritorno da backend fallback)
         <?php if(isset($_GET['error'])): ?>
             mostraErrore('Errore di validazione', '<?php echo addslashes($_GET['error']); ?>');
         <?php endif; ?>
         <?php if(isset($_GET['success'])): ?>
             mostraSuccesso('Hai prenotato con successo <?php echo addslashes($_GET['asset_nome'] ?? "la risorsa"); ?>.');
         <?php endif; ?>
-
 
         function cambiaPiano(valoreMappa) {
             const params = new URLSearchParams(window.location.search);
@@ -555,23 +610,20 @@ $sezioni = [
 
             aggiornaContatori();
 
-            // Click su Risorse in Mappa
             document.querySelectorAll('.risorsa-item').forEach(item => {
                 item.addEventListener('click', function() {
                     if(this.classList.contains('occupato')) return; 
                     
                     const r_tipo = this.getAttribute('data-tipo') || '';
-                    
-                    // Controllo click dipendente su meeting
                     if(this.classList.contains('risorsa-vietata') && r_tipo === 'meeting') {
                         mostraErrore('Accesso Negato', 'Il tuo ruolo da Dipendente non ti permette di prenotare le Sale Riunioni.');
                         return;
                     }
 
                     const r_dbid = this.getAttribute('data-dbid');
-                    if(!r_dbid) {
-                        alert("ERRORE: Asset mancante nel DB.");
-                        return;
+                    if(!r_dbid) { 
+                        mostraErrore('Asset Non Trovato', 'Questa postazione non è registrata correttamente nel database. Contatta un amministratore.');
+                        return; 
                     }
 
                     document.querySelectorAll('.risorsa-item.selezionato').forEach(el => el.classList.remove('selezionato'));
@@ -606,7 +658,6 @@ $sezioni = [
                 });
             });
 
-            // VALIDAZIONE FRONTEND (NO REFRESH) SUI LIMITI AL SUBMIT DEL FORM
             document.getElementById('booking-form').addEventListener('submit', function(e) {
                 const tipo = document.getElementById('input-tipo-risorsa').value;
                 const totScrivanieOggi = (prenotaOggi['base'] || 0) + (prenotaOggi['tech'] || 0);
@@ -614,7 +665,6 @@ $sezioni = [
                 const meetingOggi = prenotaOggi['meeting'] || 0;
 
                 if (ruoloUtente !== 'amministratore') {
-                    // Controlli validi sia per Dipendente che per Coordinatore
                     if ((tipo === 'base' || tipo === 'tech') && totScrivanieOggi >= 1) {
                         e.preventDefault();
                         mostraErrore('Limite Raggiunto', 'Hai già prenotato 1 scrivania per questa giornata. Limite massimo raggiunto.');
@@ -625,14 +675,11 @@ $sezioni = [
                         mostraErrore('Limite Raggiunto', 'Hai già prenotato 1 posto auto per questa giornata. Limite massimo raggiunto.');
                         return;
                     }
-
-                    // Controlli specifici aggiuntivi
                     if (ruoloUtente === 'dipendente' && tipo === 'meeting') {
                         e.preventDefault();
                         mostraErrore('Accesso Negato', 'Non sei autorizzato a prenotare Sale Riunioni.');
                         return;
                     }
-
                     if (ruoloUtente === 'coordinatore' && tipo === 'meeting') {
                         if (meetingOggi >= 2) {
                             e.preventDefault();
@@ -642,7 +689,6 @@ $sezioni = [
                     }
                 }
             });
-
         });
     </script>
 </body>
