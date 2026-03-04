@@ -1,9 +1,0 @@
-
-Logica Asset mappa
-## Permessi
-L'**utente dipendente** può accedere soltanto alla prenotazione di scrivanie tech e scrivanie normali(con un limite di 1 al giorno se scelgo scrivanie tech non posso scegliere contemporaneamente un altro tipo di scrivania), e un massimo di posto auto al giorno.
-L'**utente amministratore** può accedere a tutti i tipi di prenotazioni.
-L'**utente coordinatore** può accedere a tutti i tipi di prenotazioni, ma con le *stesse limitazioni* dell'utente dipendente per quanto riguarda il limite di scrivanie, invece per il limite di sale riunioni solo 2 al giorno(ovviamente non prenotabili contemporaneamente).
-## La logica
-Andranno prese le immagini vettoriali (png) per Parcheggio(diviso in posto auto e posto auto disabili) , Sale riunioni, per questi dovrai colorare l'intera immagine il contenuto siccome è trasparente in base allo stato(libero-> verde , occupato -> rosso, Selezionato -> bianco). invece per le immagini vettoriali(svg) per scrivania base e scrivania tech con la presenza dei cerchi dovrai riempire quelli in base allo stato di prenotazione(libero-> verde , occupato -> rosso, Selezionato -> bianco).
-Dovrai disporle tutte come vedi dalla prima immagine(Piano 1 e Piano 2), e dalla seconda(Per Il Parcheggio)

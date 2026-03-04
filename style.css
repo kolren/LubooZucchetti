@@ -1,35 +1,24 @@
-/* style.css */
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
 
-/* Typography */
+/* ==========================================================================
+   BASE & TYPOGRAPHY
+   ========================================================================== */
 body {
     font-family: ui-rounded, 'SF Pro Rounded', 'Nunito', system-ui, sans-serif;
     letter-spacing: -0.01em;
 }
 
-/* Backgrounds & Gradients */
+/* ==========================================================================
+   COLORI E GRADIENTI ORIGINALI
+   ========================================================================== */
 .bg-main { background: linear-gradient(135deg, #071B2B 0%, #0E2F47 40%, #2E6F9E 100%); }
 .bg-navbar { background: linear-gradient(to right, #143C5B, #1C537A); }
 .bg-nav-btn { background: linear-gradient(to bottom, #4C67A8, #5F7EC4); }
 .bg-nav-btn-active { background: linear-gradient(to bottom, #6E8FD6, #4F6EB5); }
 
-.bg-card-1 { background: linear-gradient(145deg, #153C59, #1E587A); }
-.bg-card-2 { background: linear-gradient(145deg, #5A4B67, #6F5D7D); }
-.bg-card-3 { background: linear-gradient(145deg, #2E6C68, #3F8C84); }
-.bg-card-4 { background: linear-gradient(145deg, #3A86A6, #4FA8C7); }
-
 .bg-bookings { background: linear-gradient(160deg, #1E4D6B, #183F59); }
-.bg-booking-item { background: linear-gradient(145deg, #2C6B92, #3A7FA8); }
-.bg-booking-auto { background: linear-gradient(145deg, #2F6E58, #3F8C6F); }
 
-.bg-activity { background: linear-gradient(160deg, #1E4D6B, #183F59); }
-.bg-progress-bg { background: rgba(255, 255, 255, 0.1); }
-.bg-progress-fill { background: linear-gradient(90deg, #36A482, #52D6AD); }
-
-.bg-btn-prenota { background: linear-gradient(145deg, #36A482, #2B8569); }
-.bg-btn-gestisci { background: linear-gradient(145deg, #E6A23C, #C78B33); }
-
-/* Utilities */
+/* Effetto Vetro Stabile */
 .glass-panel {
     background: rgba(255, 255, 255, 0.03);
     backdrop-filter: blur(12px);
@@ -37,56 +26,33 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.02);
-    border-radius: 10px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.15);
-    border-radius: 10px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.25);
-}
+/* ==========================================================================
+   SCROLLBAR
+   ========================================================================== */
+.custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.02); border-radius: 10px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 10px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.25); }
 
 /* ==========================================================================
-   ANIMAZIONI FLUIDE STILE APPLE (PAGE LOAD) - VERSIONE DEFINITIVA
+   ANIMAZIONE FLUIDA (PAGELOAD) - STABILE E SICURA
    ========================================================================== */
-
-/* 1. Definisco l'animazione Apple (Morbida traslazione dal basso, opacità e micro-zoom) */
-@keyframes appleEnter {
-    0% {
-        opacity: 0;
-        transform: translateY(25px) scale(0.99);
-    }
-    100% {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
+@keyframes fadeInSlideUp {
+    0% { opacity: 0; transform: translateY(15px); }
+    100% { opacity: 1; transform: translateY(0); }
 }
 
-/* 2. Applica l'animazione a tutte le griglie di contenuto che si trovano DOPO la navbar */
 header ~ .grid {
     opacity: 0; 
-    animation: appleEnter 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-    will-change: transform, opacity; 
+    animation: fadeInSlideUp 0.6s ease-out forwards;
+    /* Forza un livello di compositing separato per evitare glitch col backdrop-filter */
+    transform: translateZ(0); 
 }
 
-/* 3. Effetto Cascata Infallibile (Staggering) */
 header ~ .grid { animation-delay: 0.05s; }
 header ~ .grid ~ .grid { animation-delay: 0.15s; }
-header ~ .grid ~ .grid ~ .grid { animation-delay: 0.25s; }
-header ~ .grid ~ .grid ~ .grid ~ .grid { animation-delay: 0.35s; }
-/* ==========================================================================
-   FLUIDITÀ EXTRA PER HOVER SULLE CARD
-   ========================================================================== */
+
+/* Transizioni di base ai pannelli */
 .glass-panel, .ui-panel {
-    /* Rimosso "filter" dalla transizione per evitare i glitch dell'ombra scura */
-    transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), 
-                box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1),
-                opacity 0.4s ease, background-color 0.4s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border 0.3s ease;
 }
