@@ -184,3 +184,91 @@ CREATE TABLE prenotazioni (
     CONSTRAINT fk_prenotazioni_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT fk_prenotazioni_asset FOREIGN KEY (asset_id) REFERENCES asset(id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+
+INSERT INTO prenotazioni (user_id, asset_id, data_prenotazione, ora_inizio, ora_fine, stato) VALUES 
+
+-- ==========================================
+-- PRENOTAZIONI PASSATE (Stato: conclusa o annullata)
+-- ==========================================
+
+-- Ana Padurariu (ID:4) prenota la Scrivania Base 5 (ID Asset: 35) per la giornata intera
+(4, 35, '2026-03-02', '09:00:00', '18:00:00', 'conclusa'),
+
+-- Giovanni Papetti (ID:5) prenota il Posto Auto 2 (ID Asset: 62)
+(5, 62, '2026-03-02', '08:30:00', '18:30:00', 'conclusa'),
+
+-- Thomas Nervi (ID:6) prenota la Scrivania Tech 2 (ID Asset: 12) solo mezza giornata
+(6, 12, '2026-03-03', '09:00:00', '13:00:00', 'conclusa'),
+
+-- Maichol Aprea (ID:2) prenota la Sala Meeting 1 (ID Asset: 1) ma poi viene annullata
+(2, 1, '2026-03-03', '10:00:00', '12:00:00', 'annullata'),
+
+-- Nehemie Kablan (ID:3) prenota la Sala Meeting 2 (ID Asset: 2) nel pomeriggio
+(3, 2, '2026-03-04', '14:00:00', '16:00:00', 'conclusa'),
+
+-- Ana Padurariu (ID:4) prenota la Scrivania Tech 5 (ID Asset: 15)
+(4, 15, '2026-03-04', '09:00:00', '18:00:00', 'conclusa'),
+
+
+-- ==========================================
+-- PRENOTAZIONI DI OGGI: 5 MARZO 2026
+-- ==========================================
+
+-- Giovanni Papetti (ID:5) alla Scrivania Base 10 (ID Asset: 40) - Attualmente in corso
+(5, 40, '2026-03-05', '09:00:00', '18:00:00', 'attiva'),
+
+-- Thomas Nervi (ID:6) al Posto Auto 10 (ID Asset: 70) - Attualmente in corso
+(6, 70, '2026-03-05', '08:45:00', '18:15:00', 'attiva'),
+
+-- Maichol Aprea (ID:2) ha fatto un meeting rapido la mattina presto (Già conclusa)
+(2, 3, '2026-03-05', '09:00:00', '10:30:00', 'conclusa'),
+
+-- Ana Padurariu (ID:4) ha prenotato una Scrivania Base 6 (ID Asset: 36) per il pomeriggio
+(4, 36, '2026-03-05', '14:00:00', '18:00:00', 'attiva'),
+
+
+-- ==========================================
+-- PRENOTAZIONI FUTURE (Stato: attiva)
+-- ==========================================
+
+-- Ana Padurariu (ID:4) prenota nuovamente la Scrivania Base 5 (ID Asset: 35) per domani
+(4, 35, '2026-03-06', '09:00:00', '18:00:00', 'attiva'),
+
+-- Giovanni Papetti (ID:5) prenota la Sala Meeting 4 (ID Asset: 4) per domani pomeriggio
+(5, 4, '2026-03-06', '15:00:00', '17:00:00', 'attiva'),
+
+-- Thomas Nervi (ID:6) si assicura la Scrivania Tech 2 (ID Asset: 12) per la prossima settimana
+(6, 12, '2026-03-10', '09:00:00', '18:00:00', 'attiva'),
+
+-- Nehemie Kablan (ID:3) prenota il Posto Auto 1 (ID Asset: 61) per la prossima settimana
+(3, 61, '2026-03-10', '08:00:00', '19:00:00', 'attiva'),
+
+-- Maichol Aprea (ID:2) prenota la Scrivania Base 20 (ID Asset: 50) tra una settimana
+(2, 50, '2026-03-12', '09:30:00', '17:30:00', 'attiva'),
+
+-- Thomas Nervi (ID:6) prenota la Sala Meeting 10 (ID Asset: 10) per una riunione lunga
+(6, 10, '2026-03-12', '14:00:00', '18:00:00', 'attiva'),
+
+-- [PASSATE] Valentina prenota la Sala Meeting 5 (ID: 5) per una riunione direzionale
+(1, 5, '2026-03-02', '10:00:00', '12:00:00', 'conclusa'),
+
+-- [PASSATE] Valentina prenota il Posto Auto 3 (ID: 63)
+(1, 63, '2026-03-02', '08:00:00', '18:00:00', 'conclusa'),
+
+-- [PASSATE] Valentina prenota la Scrivania Tech 1 (ID: 11) ma annulla
+(1, 11, '2026-03-03', '09:00:00', '18:00:00', 'annullata'),
+
+
+-- [OGGI - 5 Marzo] Valentina è alla Scrivania Tech 1 (ID: 11) - Attualmente in corso
+(1, 11, '2026-03-05', '09:00:00', '18:00:00', 'attiva'),
+
+-- [OGGI - 5 Marzo] Valentina ha prenotato il Posto Auto 3 (ID: 63)
+(1, 63, '2026-03-05', '08:30:00', '18:30:00', 'attiva'),
+
+
+-- [FUTURE] Valentina prenota la Sala Meeting 8 al Piano 2 (ID: 8) per settimana prossima
+(1, 8, '2026-03-09', '14:00:00', '16:00:00', 'attiva'),
+
+-- [FUTURE] Valentina prenota nuovamente la Scrivania Tech 1 (ID: 11) per la prossima settimana
+(1, 11, '2026-03-10', '09:00:00', '18:00:00', 'attiva');
