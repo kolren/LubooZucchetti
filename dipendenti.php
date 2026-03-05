@@ -16,8 +16,8 @@ $stmt_me->bind_param("i", $logged_in_user_id);
 $stmt_me->execute();
 $me_data = $stmt_me->get_result()->fetch_assoc();
 
-$ruoloUtente = strtolower(trim($me_data['role'] ?? 'dipendente'));
-$nomeUtente = $me_data['nome'] ?? 'Utente';
+$ruoloUtente = strtolower(trim(isset($me_data['role']) ? $me_data['role'] : 'dipendente'));
+$nomeUtente = isset($me_data['nome']) ? $me_data['nome'] : 'Utente';
 $my_team_id = $me_data['team_id'];
 
 // Se un dipendente prova ad accedere forzando l'URL, lo blocchiamo
@@ -186,7 +186,7 @@ $roleTheme = $themeColors[$ruoloUtente];
                                     <span class="text-xs font-bold text-white/90 truncate max-w-[120px]"><?php echo htmlspecialchars($label_coord); ?></span>
                                 <?php else: ?>
                                     <span class="text-[9px] text-white/60 uppercase tracking-widest">Team</span>
-                                    <span class="text-xs font-bold text-white/90 truncate max-w-[120px]"><?php echo htmlspecialchars($u['nome_team'] ?? 'Nessun Team'); ?></span>
+                                    <span class="text-xs font-bold text-white/90 truncate max-w-[120px]"><?php echo htmlspecialchars(isset($u['nome_team']) ? $u['nome_team'] : 'Nessun Team'); ?></span>
                                 <?php endif; ?>
                             </div>
                             

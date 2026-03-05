@@ -17,7 +17,7 @@ $stmt_me = $conn->prepare("SELECT role FROM users WHERE id = ?");
 $stmt_me->bind_param("i", $utente_id);
 $stmt_me->execute();
 $me_data = $stmt_me->get_result()->fetch_assoc();
-$ruoloUtente = strtolower(trim($me_data['role'] ?? 'dipendente'));
+$ruoloUtente = strtolower(trim(isset($me_data['role']) ? $me_data['role'] : 'dipendente'));
 
 // Configurazione Stili Dinamici Navbar
 $themeColors = [
@@ -476,7 +476,7 @@ $sezioni = [
         }
 
         <?php if(isset($_GET['error'])): ?> mostraErrore('Errore di validazione', '<?php echo addslashes($_GET['error']); ?>'); <?php endif; ?>
-        <?php if(isset($_GET['success'])): ?> mostraSuccesso('Hai prenotato con successo <?php echo addslashes($_GET['asset_nome'] ?? "la risorsa"); ?>.'); <?php endif; ?>
+        <?php if(isset($_GET['success'])): ?> mostraSuccesso('Hai prenotato con successo <?php echo addslashes($_GET['asset_nome'] ? $_GET['asset_nome'] : "la risorsa"); ?>.'); <?php endif; ?>
 
         function cambiaPiano(valoreMappa) {
             const params = new URLSearchParams(window.location.search);

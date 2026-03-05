@@ -23,7 +23,7 @@ $stmt_role = $conn->prepare("SELECT role FROM users WHERE id = ?");
 $stmt_role->bind_param("i", $utente_id);
 $stmt_role->execute();
 $role_data = $stmt_role->get_result()->fetch_assoc();
-$ruolo = strtolower(trim($role_data['role'] ?? 'dipendente'));
+$ruolo = strtolower(trim(isset($role_data['role']) ? $role_data['role'] : 'dipendente'));
 
 function redirectWithError($msg, $data, $inizio, $fine) {
     $url = "prenotazione.php?error=" . urlencode($msg) . "&data=$data&inizio=$inizio&fine=$fine";

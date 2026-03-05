@@ -49,6 +49,8 @@ INSERT INTO users (username, password, role, nome, cognome, data_nascita, sesso,
 ('dp.pana', 'dipendente', 'dipendente', 'Ana', 'Padurariu', '2007-11-30', 'M', 18, '3L55z1', 1),
 ('dp.pgiovanni', 'dipendente', 'dipendente', 'Giovanni', 'Papetti', '2007-04-12', 'M', 18, '8H99o4', 1),
 ('dp.nthomas', 'dipendente', 'dipendente', 'Thomas', 'Nervi', '2007-01-01', 'M', 18, '2J66w7', 2);
+    
+
 
 -- ==========================================
 -- TABELLA ASSET
