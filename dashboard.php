@@ -140,6 +140,28 @@ $roleTheme = array_key_exists($ruoloUtente, $themeColors) ? $themeColors[$ruoloU
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <style>
+        .bg-card-1 { background: linear-gradient(145deg, #153C59, #1E587A); }
+        .bg-card-2 { background: linear-gradient(145deg, #5A4B67, #6F5D7D); }
+        .bg-card-3 { background: linear-gradient(145deg, #2E6C68, #3F8C84); }
+        .bg-card-4 { background: linear-gradient(145deg, #3A86A6, #4FA8C7); }
+        
+        .bg-bookings { background: linear-gradient(160deg, #1E4D6B, #183F59); }
+        .bg-booking-item { background: linear-gradient(145deg, #2C6B92, #3A7FA8); }
+        .bg-booking-auto { background: linear-gradient(145deg, #2F6E58, #3F8C6F); }
+        
+        .bg-activity { background: linear-gradient(160deg, #184760, #215F7D); }
+        .bg-progress-base { background-color: #355F75; }
+        .bg-progress-fill { background: linear-gradient(to right, #5E8BFF, #9FA8FF); }
+        .bg-btn-prenota { background: linear-gradient(145deg, #B3836A, #C89A80); }
+        .bg-btn-gestisci { background: linear-gradient(145deg, #5C78B8, #6C8DD0); }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+        
+        .glass-panel { backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+    </style>
 </head>
 
 <body class="min-h-screen bg-main p-4 md:p-6 lg:p-8 overflow-x-hidden flex justify-center text-[#F1F6FF]">
@@ -159,7 +181,7 @@ $roleTheme = array_key_exists($ruoloUtente, $themeColors) ? $themeColors[$ruoloU
                         <span class="font-bold text-lg leading-none drop-shadow-md text-white mt-1">
                             Ciao <?php echo htmlspecialchars($nomeUtente); ?>!
                         </span>
-                    </div>
+                    </div>                   
                 </div>
 
                 <nav class="flex items-center gap-2 bg-[#0A2338]/40 p-1.5 rounded-[20px] border border-white/10 overflow-x-auto custom-scrollbar">
@@ -170,6 +192,11 @@ $roleTheme = array_key_exists($ruoloUtente, $themeColors) ? $themeColors[$ruoloU
                     <a href="prenotazione.php" class="bg-nav-btn text-[#F1F6FF] px-5 py-2.5 rounded-[14px] text-sm font-bold shadow-md hover:brightness-110 transition-all whitespace-nowrap">Prenota</a>
                     <a href="dashboard.php" class="bg-nav-btn-active text-white px-5 py-2.5 rounded-[14px] text-sm font-black shadow-lg scale-105 border border-white/20 whitespace-nowrap">DashBoard</a>
                     <a href="gestisci.php" class="bg-nav-btn text-[#F1F6FF] px-5 py-2.5 rounded-[14px] text-sm font-bold shadow-md hover:brightness-110 transition-all whitespace-nowrap">Gestisci</a>
+                    <?php if ($ruoloUtente === 'amministratore'): ?>
+                            <button onclick="document.getElementById('modalNuovoUtente').classList.remove('hidden')" class="bg-[#36A482] text-white px-5 py-2.5 rounded-[14px] text-sm font-bold shadow-md hover:brightness-110 transition-all whitespace-nowrap">
+                                + Nuovo Dipendente
+                            </button>
+                    <?php endif; ?>                       
                 </nav>
 
                 <div class="hidden md:flex items-center gap-3 text-[#BFD6E8] text-xs font-semibold mr-2">

@@ -1,7 +1,37 @@
 <?php
 session_start();
 require_once 'db.php';
+// GESTIONE CREAZIONE NUOVO UTENTE (Solo Admin)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crea_utente']) && $ruoloUtente === 'amministratore') {
+    $nuovo_nome = trim($_POST['nuovo_nome']);
+    $nuovo_cognome = trim($_POST['nuovo_cognome']);
+    $nuovo_ruolo = trim($_POST['nuovo_ruolo']);
+    $nuovo_team = intval($_POST['nuovo_team']);
+    $nuova_password = password_hash($_POST['nuova_password'], PASSWORD_DEFAULT);
+    
+    // Generazione codice identificativo basato su nome e cognome
+    $codice_id = strtoupper(substr($nuovo_nome, 0, 1) . substr($nuovo_cognome, 0, 3)) . rand(100, 999);
 
+    $stmt_insert = $conn->prepare("INSERT INTO users (nome, cognome, role, team_id, password, codice_identificativo) VALUES (?, ?, ?, ?, ?, ?)");
+    $stmt_insert->bind_param("sssiss", $nuovo_nome, $nuovo_cognome, $nuovo_ruolo, $nuovo_team, $nuova_password, $codice_id);
+    
+    if ($stmt_insert->execute()) {
+        header("Location: dipendenti.php?msg=utente_creato");
+        exit();
+    } else {
+        header("Location: dipendenti.php?err=creazione_fallita");
+        exit();
+    }
+}
+
+// Recupera i team disponibili per la select
+$team_list = [];
+if ($ruoloUtente === 'amministratore') {
+    $res_team = $conn->query("SELECT id, nome_team FROM team ORDER BY nome_team ASC");
+    while($t = $res_team->fetch_assoc()) {
+        $team_list[] = $t;
+    }
+}
 // 1. Controllo Sessione e Sicurezza
 if (!isset($_SESSION['user_id'])) {
     header("Location: front-page.php");
@@ -122,6 +152,7 @@ $roleTheme = $themeColors[$ruoloUtente];
                             Ciao <?php echo htmlspecialchars($nomeUtente); ?>!
                         </span>
                     </div>
+
                 </div>
 
                 <nav class="flex items-center gap-2 bg-[#0A2338]/40 p-1.5 rounded-[20px] border border-white/10 overflow-x-auto custom-scrollbar">
@@ -129,6 +160,11 @@ $roleTheme = $themeColors[$ruoloUtente];
                     <a href="prenotazione.php" class="bg-nav-btn text-[#F1F6FF] px-5 py-2.5 rounded-[14px] text-sm font-bold shadow-md hover:brightness-110 transition-all whitespace-nowrap">Prenota</a>
                     <a href="dashboard.php" class="bg-nav-btn text-[#F1F6FF] px-5 py-2.5 rounded-[14px] text-sm font-bold shadow-md hover:brightness-110 transition-all whitespace-nowrap">DashBoard</a>
                     <a href="gestisci.php" class="bg-nav-btn text-[#F1F6FF] px-5 py-2.5 rounded-[14px] text-sm font-bold shadow-md hover:brightness-110 transition-all whitespace-nowrap">Gestisci</a>
+                        <?php if ($ruoloUtente === 'amministratore'): ?>
+                            <button onclick="document.getElementById('modalNuovoUtente').classList.remove('hidden')" class="bg-[#36A482] text-white px-5 py-2.5 rounded-[14px] text-sm font-bold shadow-md hover:brightness-110 transition-all whitespace-nowrap">
+                                + Nuovo Dipendente
+                            </button>
+                        <?php endif; ?>                
                 </nav>
 
                 <div class="hidden md:flex items-center gap-3 text-[#BFD6E8] text-xs font-semibold mr-2">

@@ -263,7 +263,7 @@ function renderPrenotazioneCard($p) {
                         <span class="font-bold text-lg leading-none drop-shadow-md text-white mt-1">
                             Ciao <?php echo htmlspecialchars(isset($_SESSION['user_nome']) ? $_SESSION['user_nome'] : 'Utente'); ?>!
                         </span>
-                    </div>
+                    </div>                     
                 </div>
 
                 <nav class="flex items-center gap-2 bg-[#0A2338]/40 p-1.5 rounded-[20px] border border-white/10 overflow-x-auto custom-scrollbar">
@@ -275,6 +275,11 @@ function renderPrenotazioneCard($p) {
                     <a href="dashboard.php" class="bg-nav-btn text-[#F1F6FF] px-5 py-2.5 rounded-[14px] text-sm font-bold shadow-md hover:brightness-110 transition-all whitespace-nowrap">DashBoard</a>
                     
                     <a href="gestisci.php" class="bg-nav-btn-active text-white px-5 py-2.5 rounded-[14px] text-sm font-black shadow-lg scale-105 border border-white/20 whitespace-nowrap">Gestisci</a>
+                    <?php if ($logged_in_role === 'amministratore'): ?>
+                            <button onclick="document.getElementById('modalNuovoUtente').classList.remove('hidden')" class="bg-[#36A482] text-white px-5 py-2.5 rounded-[14px] text-sm font-bold shadow-md hover:brightness-110 transition-all whitespace-nowrap">
+                                + Nuovo Dipendente
+                            </button>
+                    <?php endif; ?>                          
                 </nav>
 
                 <div class="hidden md:flex items-center gap-3 text-[#BFD6E8] text-xs font-semibold mr-2">
