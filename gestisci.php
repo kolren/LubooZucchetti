@@ -11,11 +11,12 @@ if (!isset($_SESSION['user_id'])) {
 $logged_in_user_id = $_SESSION['user_id'];
 
 // 1. RECUPERO IL RUOLO REALE DELL'UTENTE LOGGATO PER I PERMESSI
-$stmt_me = $conn->prepare("SELECT role FROM users WHERE id = ?");
+$stmt_me = $conn->prepare("SELECT role, team_id FROM users WHERE id = ?");
 $stmt_me->bind_param("i", $logged_in_user_id);
 $stmt_me->execute();
 $me_data = $stmt_me->get_result()->fetch_assoc();
 $logged_in_role = strtolower(trim(isset($me_data['role']) ? $me_data['role'] : 'dipendente'));
+$logged_in_team_id = isset($me_data['team_id']) ? $me_data['team_id'] : null;
 
 // Determino quale utente stiamo visualizzando (se stesso o un altro se permesso)
 $target_user_id = isset($_GET['id']) ? intval($_GET['id']) : $logged_in_user_id;
@@ -32,25 +33,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
     $n_cognome = trim($_POST['cognome']);
     $n_data_nascita = trim($_POST['data_nascita']);
 
-    $stmt_up = $conn->prepare("UPDATE users SET nome=?, cognome=?, data_nascita=? WHERE id=?");
-    $stmt_up->bind_param("sssi", $n_nome, $n_cognome, $n_data_nascita, $target_user_id);
+    // Se admin, aggiorno anche ruolo e team
+    if ($logged_in_role === 'amministratore') {
+        $n_ruolo = isset($_POST['ruolo']) ? trim($_POST['ruolo']) : '';
+        $n_team = empty($_POST['team_id']) ? NULL : intval($_POST['team_id']);
+        $stmt_up = $conn->prepare("UPDATE users SET nome=?, cognome=?, data_nascita=?, role=?, team_id=? WHERE id=?");
+        $stmt_up->bind_param("ssssii", $n_nome, $n_cognome, $n_data_nascita, $n_ruolo, $n_team, $target_user_id);
+    } else {
+        $stmt_up = $conn->prepare("UPDATE users SET nome=?, cognome=?, data_nascita=? WHERE id=?");
+        $stmt_up->bind_param("sssi", $n_nome, $n_cognome, $n_data_nascita, $target_user_id);
+    }
+
     if ($stmt_up->execute()) {
         if ($target_user_id === $logged_in_user_id) $_SESSION['user_nome'] = $n_nome;
+        
+        // Salva il Log dell'Azione per l'amministratore
+        if ($logged_in_role === 'amministratore') {
+            $stmt_log = $conn->prepare("INSERT INTO logs (user_id, azione, dettagli) VALUES (?, 'Modifica Profilo', 'Modificato utente ID: $target_user_id')");
+            $stmt_log->bind_param("i", $logged_in_user_id);
+            $stmt_log->execute();
+        }
+
         header("Location: gestisci.php?id=" . $target_user_id . "&success=1");
         exit();
     }
 }
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_user'])) {
-    if (in_array($logged_in_role, ['amministratore', 'coordinatore']) && $target_user_id !== $logged_in_user_id) {
-        $stmt_del = $conn->prepare("DELETE FROM users WHERE id = ?");
-        $stmt_del->bind_param("i", $target_user_id);
-        $stmt_del->execute();
-        header("Location: dipendenti.php");
-        exit();
-    }
-}
-
 // 3. GESTIONE AZIONI SULLE PRENOTAZIONI (ELIMINA E MODIFICA)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
@@ -103,6 +110,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 exit();
             }
         }
+    }
+}
+
+// 3.5 GESTIONE ELIMINAZIONE UTENTE (Admin o Coordinatore per dipendenti del suo team)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_user'])) {
+    $can_delete = false;
+    
+    if ($logged_in_role === 'amministratore') {
+        $can_delete = true;
+    } elseif ($logged_in_role === 'coordinatore' && $target_role === 'dipendente' && $user_data['team_id'] == $logged_in_team_id) {
+        $can_delete = true;
+    }
+    
+    if (!$can_delete) {
+        header("Location: gestisci.php?id=" . $target_user_id . "&err=no_permission");
+        exit();
+    }
+    
+    // Non permettere di eliminare se stesso
+    if ($target_user_id === $logged_in_user_id) {
+        header("Location: gestisci.php?id=" . $target_user_id . "&err=self_delete");
+        exit();
+    }
+
+    // Elimina prima le prenotazioni dell'utente
+    $stmt_del_pren = $conn->prepare("DELETE FROM prenotazioni WHERE user_id = ?");
+    $stmt_del_pren->bind_param("i", $target_user_id);
+    $stmt_del_pren->execute();
+
+    // Elimina i log dell'utente
+    $stmt_del_logs = $conn->prepare("DELETE FROM logs WHERE user_id = ?");
+    $stmt_del_logs->bind_param("i", $target_user_id);
+    $stmt_del_logs->execute();
+
+    // Elimina l'utente
+    $stmt_del_user = $conn->prepare("DELETE FROM users WHERE id = ?");
+    $stmt_del_user->bind_param("i", $target_user_id);
+    if ($stmt_del_user->execute()) {
+        // Log dell'azione
+        $stmt_log = $conn->prepare("INSERT INTO logs (user_id, azione, dettagli) VALUES (?, 'Eliminazione Utente', 'Eliminato utente ID: $target_user_id')");
+        $stmt_log->bind_param("i", $logged_in_user_id);
+        $stmt_log->execute();
+
+        header("Location: dipendenti.php?msg=user_deleted");
+        exit();
+    } else {
+        header("Location: gestisci.php?id=" . $target_user_id . "&err=delete_failed");
+        exit();
     }
 }
 
@@ -231,26 +286,30 @@ function renderPrenotazioneCard($p) {
 
 <body class="min-h-screen bg-main p-4 md:p-6 lg:p-8 overflow-x-hidden flex justify-center text-[#F1F6FF] relative">
 
-    <div class="w-full max-w-[1400px] flex flex-col gap-6">
+    <div class="w-full max-w-[1400px] flex flex-col gap-6 pt-24">
         
         <?php if(isset($_GET['err'])): ?>
             <div class="absolute top-4 left-1/2 -translate-x-1/2 bg-red-500 text-white px-6 py-2 rounded-xl text-sm font-bold shadow-2xl z-50 animate-bounce">
                 <?php 
                 if($_GET['err'] == 'overlap') echo "Errore: La postazione è già occupata in questo nuovo orario.";
                 elseif($_GET['err'] == 'time') echo "Errore: L'orario di fine deve essere successivo a quello di inizio.";
+                elseif($_GET['err'] == 'self_delete') echo "Errore: Non puoi eliminare il tuo stesso account.";
+                elseif($_GET['err'] == 'delete_failed') echo "Errore: Impossibile eliminare l'utente. Riprova.";
+                elseif($_GET['err'] == 'no_permission') echo "Errore: Non hai i permessi per eliminare questo utente.";
                 ?>
             </div>
         <?php endif; ?>
-        <?php if(isset($_GET['msg'])): ?>
+        <?php if(isset($_GET['msg']) || isset($_GET['success'])): ?>
             <div class="absolute top-4 left-1/2 -translate-x-1/2 bg-[#36A482] text-white px-6 py-2 rounded-xl text-sm font-bold shadow-2xl z-50">
                 <?php 
-                if($_GET['msg'] == 'pren_updated') echo "Prenotazione aggiornata con successo!";
+                if(isset($_GET['success'])) echo "Profilo aggiornato con successo!";
+                elseif($_GET['msg'] == 'pren_updated') echo "Prenotazione aggiornata con successo!";
                 elseif($_GET['msg'] == 'pren_deleted') echo "Prenotazione eliminata con successo!";
                 ?>
             </div>
         <?php endif; ?>
 
-        <header class="relative">
+        <header class="fixed top-0 left-0 right-0 z-50">
             <div class="bg-navbar glass-panel rounded-[29px] p-4 lg:p-5 flex items-center justify-between flex-wrap gap-4">
                 <div class="flex items-center gap-4 lg:gap-6">
                     <img src="src/Logo.png" alt="LubooZucchetti" class="h-10 object-contain ml-2">
@@ -275,11 +334,6 @@ function renderPrenotazioneCard($p) {
                     <a href="dashboard.php" class="bg-nav-btn text-[#F1F6FF] px-5 py-2.5 rounded-[14px] text-sm font-bold shadow-md hover:brightness-110 transition-all whitespace-nowrap">DashBoard</a>
                     
                     <a href="gestisci.php" class="bg-nav-btn-active text-white px-5 py-2.5 rounded-[14px] text-sm font-black shadow-lg scale-105 border border-white/20 whitespace-nowrap">Gestisci</a>
-                    <?php if ($logged_in_role === 'amministratore'): ?>
-                            <button onclick="document.getElementById('modalNuovoUtente').classList.remove('hidden')" class="bg-[#36A482] text-white px-5 py-2.5 rounded-[14px] text-sm font-bold shadow-md hover:brightness-110 transition-all whitespace-nowrap">
-                                + Nuovo Dipendente
-                            </button>
-                    <?php endif; ?>                          
                 </nav>
 
                 <div class="hidden md:flex items-center gap-3 text-[#BFD6E8] text-xs font-semibold mr-2">
@@ -314,6 +368,25 @@ function renderPrenotazioneCard($p) {
                                  style="background-color: <?php echo $roleTheme['badge_bg']; ?>; color: <?php echo $roleTheme['badge_text']; ?>;">
                                 <?php echo htmlspecialchars($target_role); ?>
                             </div>
+
+                            <?php if ($logged_in_role === 'amministratore'): ?>
+                                <?php $res_team = $conn->query("SELECT id, nome_team FROM team ORDER BY nome_team ASC"); ?>
+                                <select name="ruolo" class="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-[10px] font-bold text-[#BFD6E8] focus:outline-none focus:border-[#4FA8C7] appearance-none cursor-pointer text-right hover:bg-white/10 transition-colors shadow-sm uppercase tracking-widest w-full max-w-[160px]">
+                                    <option value="dipendente" <?php echo $target_role == 'dipendente' ? 'selected' : ''; ?> class="text-black">Dipendente</option>
+                                    <option value="coordinatore" <?php echo $target_role == 'coordinatore' ? 'selected' : ''; ?> class="text-black">Coordinatore</option>
+                                    <option value="amministratore" <?php echo $target_role == 'amministratore' ? 'selected' : ''; ?> class="text-black">Amministratore</option>
+                                </select>
+                                
+                                <select name="team_id" class="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-[10px] font-bold text-[#BFD6E8] focus:outline-none focus:border-[#4FA8C7] appearance-none cursor-pointer text-right hover:bg-white/10 transition-colors shadow-sm uppercase tracking-widest w-full max-w-[160px]">
+                                    <option value="" class="text-black">Nessun Team</option>
+                                    <?php while($t = $res_team->fetch_assoc()): ?>
+                                        <option value="<?php echo $t['id']; ?>" <?php echo (isset($user_data['team_id']) && $user_data['team_id'] == $t['id']) ? 'selected' : ''; ?> class="text-black">
+                                            Team <?php echo htmlspecialchars($t['nome_team']); ?>
+                                        </option>
+                                    <?php endwhile; ?>
+                                </select>
+                            <?php endif; ?>
+
                             <button type="submit" class="bg-[#36A482] hover:bg-[#2b8569] text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider shadow-lg transition-all border border-[#36A482]/50">
                                 Salva Modifiche
                             </button>

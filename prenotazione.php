@@ -158,9 +158,9 @@ $sezioni = [
 
 <body class="min-h-screen bg-main p-4 md:p-6 lg:p-8 overflow-x-hidden flex justify-center text-[#F1F6FF] relative">
 
-    <div class="w-full max-w-[1400px] flex flex-col gap-6">
+    <div class="w-full max-w-[1400px] flex flex-col gap-6 pt-24">
         
-        <header class="relative">
+        <header class="fixed top-0 left-0 right-0 z-50">
             <div class="bg-navbar glass-panel rounded-[29px] p-4 lg:p-5 flex items-center justify-between flex-wrap gap-4">
                 <div class="flex items-center gap-4 lg:gap-6">
                     <img src="src/Logo.png" alt="LubooZucchetti" class="h-10 object-contain ml-2">
@@ -180,11 +180,6 @@ $sezioni = [
                     <a href="prenotazione.php" class="bg-nav-btn-active text-white px-5 py-2.5 rounded-[14px] text-sm font-black shadow-lg scale-105 border border-white/20 whitespace-nowrap">Prenota</a>
                     <a href="dashboard.php" class="bg-nav-btn text-[#F1F6FF] px-5 py-2.5 rounded-[14px] text-sm font-bold shadow-md hover:brightness-110 transition-all whitespace-nowrap">DashBoard</a>
                     <a href="gestisci.php" class="bg-nav-btn text-[#F1F6FF] px-5 py-2.5 rounded-[14px] text-sm font-bold shadow-md hover:brightness-110 transition-all whitespace-nowrap">Gestisci</a>
-                    <?php if ($ruoloUtente === 'amministratore'): ?>
-                            <button onclick="document.getElementById('modalNuovoUtente').classList.remove('hidden')" class="bg-[#36A482] text-white px-5 py-2.5 rounded-[14px] text-sm font-bold shadow-md hover:brightness-110 transition-all whitespace-nowrap">
-                                + Nuovo Dipendente
-                            </button>
-                    <?php endif; ?>                       
                 </nav>
                 <div class="hidden md:flex items-center gap-3 text-[#BFD6E8] text-xs font-semibold mr-2">
                     <a href="gestisci.php" class="hover:text-white transition-colors uppercase">Modifica</a>

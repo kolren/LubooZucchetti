@@ -272,3 +272,10 @@ INSERT INTO prenotazioni (user_id, asset_id, data_prenotazione, ora_inizio, ora_
 
 -- [FUTURE] Valentina prenota nuovamente la Scrivania Tech 1 (ID: 11) per la prossima settimana
 (1, 11, '2026-03-10', '09:00:00', '18:00:00', 'attiva');
+CREATE TABLE IF NOT EXISTS logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NULL,
+    azione VARCHAR(100) NOT NULL,
+    dettagli TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
