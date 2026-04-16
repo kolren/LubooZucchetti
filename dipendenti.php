@@ -25,18 +25,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crea_utente']) && $ru
     $nuovo_cognome = trim($_POST['nuovo_cognome']);
     $nuovo_ruolo = trim($_POST['nuovo_ruolo']);
     $nuovo_team = intval($_POST['nuovo_team']);
-    $nuova_password = password_hash($_POST['nuova_password'], PASSWORD_DEFAULT);
+    $nuova_password = trim($_POST['nuova_password']);
+    
+    // Validazione lato server
+    $errori = [];
+    
+    if (empty($nuovo_nome)) {
+        $errori[] = 'nome';
+    }
+    if (empty($nuovo_cognome)) {
+        $errori[] = 'cognome';
+    }
+    if (empty($nuovo_ruolo) || !in_array($nuovo_ruolo, ['dipendente', 'coordinatore', 'amministratore'])) {
+        $errori[] = 'ruolo';
+    }
+    if (strlen($nuova_password) < 8 || !preg_match('/[a-zA-Z]/', $nuova_password) || !preg_match('/[0-9]/', $nuova_password)) {
+        $errori[] = 'password';
+    }
+    
+    if (!empty($errori)) {
+        header("Location: dipendenti.php?view=nuovo&err=" . implode(',', $errori));
+        exit();
+    }
+    
+    $nuova_password_hash = password_hash($nuova_password, PASSWORD_DEFAULT);
     
     // Generazione codice identificativo basato su nome e cognome
     $codice_id = strtoupper(substr($nuovo_nome, 0, 1) . substr($nuovo_cognome, 0, 3)) . rand(100, 999);
+    
+    // Generazione username unico basato su nome e cognome
+    $username_base = strtolower(substr($nuovo_nome, 0, 1) . $nuovo_cognome);
+    $username = $username_base;
+    $counter = 1;
+    
+    // Controlla se lo username esiste già e genera uno univoco se necessario
+    while (true) {
+        $stmt_check = $conn->prepare("SELECT id FROM users WHERE username = ?");
+        $stmt_check->bind_param("s", $username);
+        $stmt_check->execute();
+        $result_check = $stmt_check->get_result();
+        
+        if ($result_check->num_rows === 0) {
+            break; // Username è unico
+        }
+        
+        $username = $username_base . $counter;
+        $counter++;
+    }
 
-    $stmt_insert = $conn->prepare("INSERT INTO users (nome, cognome, role, team_id, password, codice_identificativo) VALUES (?, ?, ?, ?, ?, ?)");
-    $stmt_insert->bind_param("sssiss", $nuovo_nome, $nuovo_cognome, $nuovo_ruolo, $nuovo_team, $nuova_password, $codice_id);
+    $stmt_insert = $conn->prepare("INSERT INTO users (nome, cognome, role, team_id, password, codice_identificativo, username) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $stmt_insert->bind_param("sssisss", $nuovo_nome, $nuovo_cognome, $nuovo_ruolo, $nuovo_team, $nuova_password_hash, $codice_id, $username);
     
     if ($stmt_insert->execute()) {
         // Registrazione Log
         $stmt_log = $conn->prepare("INSERT INTO logs (user_id, azione, dettagli) VALUES (?, 'Creazione Utente', ?)");
-        $dettagli_log = "Creato nuovo utente: $nuovo_nome $nuovo_cognome ($nuovo_ruolo)";
+        $dettagli_log = "Creato nuovo utente: $nuovo_nome $nuovo_cognome ($nuovo_ruolo) - ID: $codice_id";
         $stmt_log->bind_param("is", $logged_in_user_id, $dettagli_log);
         $stmt_log->execute();
 
@@ -190,16 +233,28 @@ $roleTheme = $themeColors[$ruoloUtente];
 
 <body class="min-h-screen bg-main p-4 md:p-6 lg:p-8 overflow-x-hidden flex justify-center text-[#F1F6FF]">
 
+    <!-- POP-UP DI VALIDAZIONE (Fuori dal main container) -->
+    <?php if(isset($_GET['msg'])): ?>
+        <div class="fixed top-20 left-1/2 -translate-x-1/2 bg-[#36A482] text-white px-6 py-3 rounded-xl text-sm font-bold shadow-2xl z-[9999]">
+            <?php 
+            if($_GET['msg'] == 'utente_creato') echo "✓ Utente creato con successo!";
+            elseif($_GET['msg'] == 'user_deleted') echo "✓ Utente eliminato con successo!";
+            ?>
+        </div>
+    <?php elseif(isset($_GET['err'])): ?>
+        <div class="fixed top-20 left-1/2 -translate-x-1/2 bg-red-500 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-2xl z-[9999]">
+            <?php 
+            if($_GET['err'] == 'creazione_fallita') echo "⚠️ Errore durante la creazione dell'utente.";
+            elseif(strpos($_GET['err'], 'nome') !== false) echo "⚠️ Controlla i dati inseriti (nome obbligatorio).";
+            elseif(strpos($_GET['err'], 'password') !== false) echo "⚠️ Password non valida: minimo 8 caratteri, lettere e numeri.";
+            else echo "⚠️ Errore nel modulo. Controlla i dati.";
+            ?>
+        </div>
+    <?php endif; ?>
+
     <div class="w-full max-w-[1400px] flex flex-col gap-6 relative pt-24">
         
-        <?php if(isset($_GET['msg'])): ?>
-            <div class="absolute top-4 left-1/2 -translate-x-1/2 bg-[#36A482] text-white px-6 py-2 rounded-xl text-sm font-bold shadow-2xl z-50 animate-bounce">
-                <?php 
-                if($_GET['msg'] == 'utente_creato') echo "Utente creato con successo!";
-                elseif($_GET['msg'] == 'user_deleted') echo "Utente eliminato con successo!";
-                ?>
-            </div>
-        <?php endif; ?>
+        <!-- Pop-up rimosso da qui -->
         
           <header class="fixed top-0 left-0 right-0 z-50">
         <div class="bg-navbar glass-panel rounded-[29px] p-4 lg:p-5 flex items-center justify-between flex-wrap gap-4 mx-4 md:mx-6 lg:mx-8 mt-4">
@@ -269,34 +324,180 @@ $roleTheme = $themeColors[$ruoloUtente];
                 </div>
 
                 <?php if ($view === 'nuovo'): ?>
-                    <form method="POST" action="dipendenti.php" class="flex flex-col gap-5 w-full max-w-xl z-10 h-full content-start">
+                    <form method="POST" action="dipendenti.php" id="form-nuovo-utente" class="flex flex-col gap-6 w-full max-w-2xl z-10 h-full content-start">
                         <input type="hidden" name="crea_utente" value="1">
                         
-                        <div class="flex gap-4">
-                            <input type="text" name="nuovo_nome" placeholder="Nome" required class="w-1/2 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-[#00f2ff] transition-colors">
-                            <input type="text" name="nuovo_cognome" placeholder="Cognome" required class="w-1/2 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-[#00f2ff] transition-colors">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="flex flex-col gap-2">
+                                <label class="text-xs font-black uppercase tracking-widest text-white/70">Nome *</label>
+                                <div class="relative">
+                                    <input type="text" id="input-nome" name="nuovo_nome" placeholder="Inserisci il nome" required class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:outline-none transition-colors pr-10" oninput="validateForm()">
+                                    <span id="check-nome" class="absolute right-3 top-1/2 -translate-y-1/2 text-lg hidden">✓</span>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col gap-2">
+                                <label class="text-xs font-black uppercase tracking-widest text-white/70">Cognome *</label>
+                                <div class="relative">
+                                    <input type="text" id="input-cognome" name="nuovo_cognome" placeholder="Inserisci il cognome" required class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:outline-none transition-colors pr-10" oninput="validateForm()">
+                                    <span id="check-cognome" class="absolute right-3 top-1/2 -translate-y-1/2 text-lg hidden">✓</span>
+                                </div>
+                            </div>
                         </div>
 
-                        <select name="nuovo_ruolo" required class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#00f2ff] appearance-none transition-colors">
-                            <option value="" disabled selected class="text-black">Seleziona Ruolo...</option>
-                            <option value="dipendente" class="text-black">Dipendente</option>
-                            <option value="coordinatore" class="text-black">Coordinatore</option>
-                            <option value="amministratore" class="text-black">Amministratore</option>
-                        </select>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="flex flex-col gap-2">
+                                <label class="text-xs font-black uppercase tracking-widest text-white/70">Ruolo *</label>
+                                <select id="input-ruolo" name="nuovo_ruolo" required class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#00f2ff] appearance-none transition-colors" oninput="validateForm()">
+                                    <option value="" disabled selected class="text-black">Seleziona Ruolo...</option>
+                                    <option value="dipendente" class="text-black">👤 Dipendente</option>
+                                    <option value="coordinatore" class="text-black">👥 Coordinatore</option>
+                                    <option value="amministratore" class="text-black">⚙️ Amministratore</option>
+                                </select>
+                            </div>
 
-                        <select name="nuovo_team" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#00f2ff] appearance-none transition-colors">
-                            <option value="0" selected class="text-black">Nessun Team</option>
-                            <?php foreach($team_list as $t): ?>
-                                <option value="<?php echo $t['id']; ?>" class="text-black"><?php echo htmlspecialchars($t['nome_team']); ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                            <div class="flex flex-col gap-2">
+                                <label class="text-xs font-black uppercase tracking-widest text-white/70">Team</label>
+                                <select id="input-team" name="nuovo_team" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#00f2ff] appearance-none transition-colors">
+                                    <option value="0" selected class="text-black">Nessun Team</option>
+                                    <?php foreach($team_list as $t): ?>
+                                        <option value="<?php echo $t['id']; ?>" class="text-black"><?php echo htmlspecialchars($t['nome_team']); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
 
-                        <input type="password" name="nuova_password" placeholder="Password Iniziale" required class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-[#00f2ff] transition-colors">
+                        <div class="flex flex-col gap-2">
+                            <label class="text-xs font-black uppercase tracking-widest text-white/70">Password Iniziale *</label>
+                            <div class="flex flex-col gap-2">
+                                <div class="relative">
+                                    <input type="password" id="input-password" name="nuova_password" placeholder="Minimo 8 caratteri" required class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:outline-none transition-colors pr-10" oninput="validateForm()">
+                                    <span id="check-password" class="absolute right-3 top-1/2 -translate-y-1/2 text-lg hidden">✓</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <div class="flex-grow h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                        <div id="password-strength" class="h-full w-0 bg-red-500 transition-all"></div>
+                                    </div>
+                                    <span id="password-label" class="text-xs font-bold text-white/50">Debole</span>
+                                </div>
+                                <p id="password-requirements" class="text-xs text-white/50 leading-relaxed">
+                                    • Almeno 8 caratteri<br>
+                                    • Contiene lettere e numeri
+                                </p>
+                            </div>
+                        </div>
 
-                        <button type="submit" class="mt-4 w-full bg-gradient-to-r from-[#00f2ff] to-[#00b4d8] text-[#0A2338] font-black py-4 rounded-xl uppercase tracking-widest shadow-lg hover:brightness-110 transition-all">
-                            Crea Profilo
+                        <!-- ANTEPRIMA NUOVO UTENTE -->
+                        <div id="preview-container" class="hidden bg-gradient-to-br from-[#1D7F75] to-[#138C8F] rounded-[20px] p-6 border border-white/10 shadow-xl">
+                            <p class="text-xs font-black uppercase tracking-widest text-white/70 mb-4">📋 Anteprima Nuovo Utente</p>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div>
+                                    <span class="block text-[10px] text-white/60 uppercase tracking-widest font-bold mb-1">Nome</span>
+                                    <p id="preview-nome" class="text-white font-bold truncate">-</p>
+                                </div>
+                                <div>
+                                    <span class="block text-[10px] text-white/60 uppercase tracking-widest font-bold mb-1">Cognome</span>
+                                    <p id="preview-cognome" class="text-white font-bold truncate">-</p>
+                                </div>
+                                <div>
+                                    <span class="block text-[10px] text-white/60 uppercase tracking-widest font-bold mb-1">Ruolo</span>
+                                    <p id="preview-ruolo" class="text-white font-bold truncate text-xs">-</p>
+                                </div>
+                                <div>
+                                    <span class="block text-[10px] text-white/60 uppercase tracking-widest font-bold mb-1">Codice ID</span>
+                                    <p id="preview-id" class="text-[#00f2ff] font-black text-sm">-</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- MESSAGGI ERRORE -->
+                        <div id="error-message" class="hidden bg-red-500/20 border border-red-500/50 rounded-xl px-4 py-3">
+                            <p id="error-text" class="text-red-300 text-sm font-semibold"></p>
+                        </div>
+
+                        <button type="submit" id="btn-crea" disabled class="mt-6 w-full bg-gradient-to-r from-[#00f2ff] to-[#00b4d8] text-[#0A2338] font-black py-4 rounded-xl uppercase tracking-widest shadow-lg hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:brightness-100">
+                            ✓ Crea Profilo
                         </button>
                     </form>
+
+                    <script>
+                        function generateCodeId(nome, cognome) {
+                            const n = nome.trim().toUpperCase();
+                            const c = cognome.trim().toUpperCase();
+                            const firstPart = (n.charAt(0) || '') + (c.substring(0, 3) || '');
+                            const randomPart = Math.floor(Math.random() * 900) + 100;
+                            return (firstPart + randomPart).substring(0, 7);
+                        }
+
+                        function validatePassword(pwd) {
+                            const hasLength = pwd.length >= 8;
+                            const hasLettersAndNumbers = /[a-zA-Z]/.test(pwd) && /[0-9]/.test(pwd);
+                            return hasLength && hasLettersAndNumbers;
+                        }
+
+                        function getPasswordStrength(pwd) {
+                            if (pwd.length === 0) return { strength: 0, label: 'Debole', color: 'bg-red-500' };
+                            if (pwd.length < 8) return { strength: 25, label: 'Debole', color: 'bg-red-500' };
+                            if (!/[a-zA-Z]/.test(pwd) || !/[0-9]/.test(pwd)) return { strength: 50, label: 'Media', color: 'bg-yellow-500' };
+                            if (pwd.length < 12) return { strength: 75, label: 'Buona', color: 'bg-blue-500' };
+                            return { strength: 100, label: 'Forte', color: 'bg-green-500' };
+                        }
+
+                        function validateForm() {
+                            const nome = document.getElementById('input-nome').value.trim();
+                            const cognome = document.getElementById('input-cognome').value.trim();
+                            const ruolo = document.getElementById('input-ruolo').value;
+                            const password = document.getElementById('input-password').value;
+
+                            // Validazione Nome
+                            const nomeValid = nome.length > 0;
+                            document.getElementById('check-nome').style.display = nomeValid ? 'block' : 'none';
+                            document.getElementById('input-nome').style.borderColor = nomeValid ? '#36A482' : '';
+
+                            // Validazione Cognome
+                            const cognomeValid = cognome.length > 0;
+                            document.getElementById('check-cognome').style.display = cognomeValid ? 'block' : 'none';
+                            document.getElementById('input-cognome').style.borderColor = cognomeValid ? '#36A482' : '';
+
+                            // Validazione Password
+                            const passwordValid = validatePassword(password);
+                            const pwdStrength = getPasswordStrength(password);
+                            document.getElementById('password-strength').style.width = pwdStrength.strength + '%';
+                            document.getElementById('password-strength').className = 'h-full transition-all ' + pwdStrength.color;
+                            document.getElementById('password-label').textContent = pwdStrength.label;
+                            document.getElementById('check-password').style.display = passwordValid ? 'block' : 'none';
+                            document.getElementById('input-password').style.borderColor = passwordValid ? '#36A482' : '';
+                            
+                            const ruoloValid = ruolo !== '';
+
+                            // Aggiorna anteprima se tutti i campi principali sono compilati
+                            if (nomeValid && cognomeValid && ruoloValid) {
+                                document.getElementById('preview-container').classList.remove('hidden');
+                                document.getElementById('preview-nome').textContent = nome;
+                                document.getElementById('preview-cognome').textContent = cognome;
+                                document.getElementById('preview-ruolo').textContent = ruolo.charAt(0).toUpperCase() + ruolo.slice(1);
+                                document.getElementById('preview-id').textContent = generateCodeId(nome, cognome);
+                            } else {
+                                document.getElementById('preview-container').classList.add('hidden');
+                            }
+
+                            // Aggiorna stato bottone
+                            const allValid = nomeValid && cognomeValid && ruoloValid && passwordValid;
+                            document.getElementById('btn-crea').disabled = !allValid;
+
+                            // Mostra/nascondi errore password
+                            if (password.length > 0 && !passwordValid) {
+                                document.getElementById('error-message').classList.remove('hidden');
+                                document.getElementById('error-text').textContent = '⚠️ La password deve avere almeno 8 caratteri e contenere lettere e numeri.';
+                            } else {
+                                document.getElementById('error-message').classList.add('hidden');
+                            }
+                        }
+
+                        // Validazione iniziale
+                        validateForm();
+                    </script>
+                
 
                 <?php elseif ($view === 'logs'): ?>
                     <div class="flex flex-col gap-4 z-10 overflow-y-auto custom-scrollbar pr-2 h-full content-start">

@@ -6,6 +6,43 @@ if (!isset($_SESSION['user_id'])) { exit(); }
 
 $mio_id = $_SESSION['user_id'];
 
+// RICERCA NEI MESSAGGI E CONTATTI
+if (isset($_GET['search'])) {
+    header('Content-Type: application/json');
+    $query = trim($_GET['search']);
+    if (strlen($query) < 2) {
+        echo json_encode([]);
+        exit();
+    }
+    
+    $search_term = '%' . $conn->real_escape_string($query) . '%';
+    
+    $stmt_search = $conn->prepare("
+        SELECT DISTINCT u.id, u.nome, u.cognome, u.role, COUNT(m.id) as match_count
+        FROM users u
+        LEFT JOIN messaggi m ON (
+            (m.mittente_id = u.id AND m.destinatario_id = ?) 
+            OR (m.mittente_id = ? AND m.destinatario_id = u.id)
+        )
+        WHERE u.id != ? AND (
+            CONCAT(u.nome, ' ', u.cognome) LIKE ?
+            OR m.testo LIKE ?
+        )
+        GROUP BY u.id
+        ORDER BY match_count DESC, CONCAT(u.nome, ' ', u.cognome) ASC
+    ");
+    $stmt_search->bind_param("iiss", $mio_id, $mio_id, $mio_id, $search_term, $search_term);
+    $stmt_search->execute();
+    $result = $stmt_search->get_result();
+    
+    $risultati = [];
+    while ($row = $result->fetch_assoc()) {
+        $risultati[] = $row;
+    }
+    echo json_encode($risultati);
+    exit();
+}
+
 // 1. INSERIMENTO NUOVO MESSAGGIO
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['testo']) && isset($_POST['destinatario_id'])) {
     $destinatario_id = intval($_POST['destinatario_id']);
@@ -60,8 +97,9 @@ if (isset($_GET['partner_id'])) {
             }
             
             // Stampa l'etichetta divisoria della data
-            echo '<div class="flex justify-center my-4 sticky top-0 z-10">';
-            echo '  <span class="bg-[#0A2338]/80 border border-white/10 text-[#BFD6E8] text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-sm backdrop-blur-md">';
+            echo '<div class="flex justify-center my-5 sticky top-0 z-10 relative">';
+            echo '  <div class="absolute inset-x-0 top-1/2 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>';
+            echo '  <span class="relative bg-[#04101A]/95 border border-white/20 text-[#36A482] text-[11px] font-black uppercase tracking-[2px] px-5 py-2 rounded-full shadow-lg backdrop-blur-md hover:bg-[#0A2338] transition-colors">';
             echo '    ' . $label_data;
             echo '  </span>';
             echo '</div>';
