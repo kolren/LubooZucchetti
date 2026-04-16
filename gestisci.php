@@ -9,6 +9,8 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $logged_in_user_id = $_SESSION['user_id'];
+// VARIABILI PER LA NAVBAR UNIVERSALE (Utente Loggato)
+$nomeUtenteLoggato = isset($_SESSION['user_nome']) ? $_SESSION['user_nome'] : 'Utente';
 
 // 1. RECUPERO IL RUOLO REALE DELL'UTENTE LOGGATO PER I PERMESSI
 $stmt_me = $conn->prepare("SELECT role, team_id FROM users WHERE id = ?");
@@ -17,6 +19,9 @@ $stmt_me->execute();
 $me_data = $stmt_me->get_result()->fetch_assoc();
 $logged_in_role = strtolower(trim(isset($me_data['role']) ? $me_data['role'] : 'dipendente'));
 $logged_in_team_id = isset($me_data['team_id']) ? $me_data['team_id'] : null;
+
+// Rendo disponibile la variabile per la Navbar Universale
+$ruoloUtente = $logged_in_role;
 
 // Determino quale utente stiamo visualizzando (se stesso o un altro se permesso)
 $target_user_id = isset($_GET['id']) ? intval($_GET['id']) : $logged_in_user_id;
@@ -172,8 +177,8 @@ if (!$user_data) {
     exit();
 }
 
-$nomeUtente = isset($user_data['nome']) ? $user_data['nome'] : '';
-$cognomeUtente = isset($user_data['cognome']) ? $user_data['cognome'] : ''; 
+$nomeTarget = isset($user_data['nome']) ? $user_data['nome'] : '';
+$cognomeTarget = isset($user_data['cognome']) ? $user_data['cognome'] : ''; 
 $target_role = strtolower(trim(isset($user_data['role']) ? $user_data['role'] : 'dipendente'));
 $aziendaUtente = 'LubooZucchetti'; 
 $dataNascita = isset($user_data['data_nascita']) ? $user_data['data_nascita'] : '';
@@ -241,7 +246,6 @@ function renderPrenotazioneCard($p) {
     $inizio_formattato = date('H:i', strtotime($p['ora_inizio']));
     $fine_formattato = date('H:i', strtotime($p['ora_fine']));
     
-    // Preparo i dati per passarli al JS del modale
     $asset_nome_js = htmlspecialchars(addslashes($p['asset_nome']));
     
     return '
@@ -259,7 +263,6 @@ function renderPrenotazioneCard($p) {
             <button type="button" onclick="apriModalModifica('.$p['id'].', \''.$p['data_prenotazione'].'\', \''.$p['ora_inizio'].'\', \''.$p['ora_fine'].'\', \''.$asset_nome_js.'\')" class="flex-1 bg-green-600/20 text-green-400 border border-green-500/30 hover:bg-green-600/40 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all">
                 Modifica
             </button>
-            
             <button type="button" onclick="apriModalEliminaPrenotazione('.$p['id'].')" class="flex-1 bg-red-600/20 text-red-400 border border-red-500/30 hover:bg-red-600/40 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all">
                 Elimina
             </button>
@@ -281,6 +284,32 @@ function renderPrenotazioneCard($p) {
         input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; filter: invert(1); opacity: 0.6; transition: 0.2s; }
         input[type="time"]::-webkit-calendar-picker-indicator:hover,
         input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+        
+        /* SCROLLBAR DESIGN ELEGANTE GLOBALE */
+        ::-webkit-scrollbar {
+            width: 12px;
+            height: 12px;
+        }
+        ::-webkit-scrollbar-track {
+            background: linear-gradient(180deg, rgba(7, 27, 43, 0.7) 0%, rgba(14, 47, 71, 0.8) 100%);
+            border-radius: 10px;
+            border: 1px solid rgba(54, 164, 130, 0.1);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #36A482 0%, #1D7F75 50%, #0F6E73 100%);
+            border-radius: 10px;
+            border: 1px solid rgba(81, 224, 184, 0.3);
+            box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.1), 0 0 8px rgba(54, 164, 130, 0.4);
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, #51E0B8 0%, #36A482 50%, #1D7F75 100%);
+            box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.15), 0 0 16px rgba(81, 224, 184, 0.6);
+            border-color: rgba(81, 224, 184, 0.5);
+        }
+        ::-webkit-scrollbar-thumb:active {
+            background: linear-gradient(180deg, #36A482 0%, #0F6E73 100%);
+            box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.1), 0 0 12px rgba(54, 164, 130, 0.5);
+        }
     </style>
 </head>
 
@@ -310,33 +339,34 @@ function renderPrenotazioneCard($p) {
         <?php endif; ?>
 
         <header class="fixed top-0 left-0 right-0 z-50">
-            <div class="bg-navbar glass-panel rounded-[29px] p-4 lg:p-5 flex items-center justify-between flex-wrap gap-4">
+            <div class="bg-navbar glass-panel rounded-[29px] p-4 lg:p-5 flex items-center justify-between flex-wrap gap-4 mx-4 md:mx-6 lg:mx-8 mt-4">
+                
                 <div class="flex items-center gap-4 lg:gap-6">
                     <img src="src/Logo.png" alt="LubooZucchetti" class="h-10 object-contain ml-2">
                     
-                    <div class="<?php echo $myRoleTheme['box_grad']; ?> rounded-[18px] px-5 py-2.5 flex flex-col justify-center shadow-lg border border-white/10">
-                        <span class="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md self-start mb-0.5 shadow-sm" 
-                            style="background-color: <?php echo $myRoleTheme['badge_bg']; ?>; color: <?php echo $myRoleTheme['badge_text']; ?>;">
-                            <?php echo htmlspecialchars($logged_in_role); ?>
+                    <a href="messaggistica.php" class="relative flex items-center justify-center text-[#BFD6E8] hover:text-white transition-colors bg-white/5 p-2.5 rounded-xl border border-white/10 hover:bg-[#36A482]/20 hover:border-[#36A482]/50 group shadow-md" title="Messaggi">
+                        <svg class="w-6 h-6 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+                        <span class="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#0A2338]"></span>
+                    </a>
+
+                    <div class="<?php echo $myRoleTheme['box_grad']; ?> rounded-[18px] px-5 py-2.5 flex flex-col justify-center shadow-lg border border-white/10 hidden sm:flex">
+                        <span class="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md self-start mb-0.5 shadow-sm" style="background-color: <?php echo $myRoleTheme['badge_bg']; ?>; color: <?php echo $myRoleTheme['badge_text']; ?>;">
+                            <?php echo htmlspecialchars($ruoloUtente); ?>
                         </span>
-                        <span class="font-bold text-lg leading-none drop-shadow-md text-white mt-1">
-                            Ciao <?php echo htmlspecialchars(isset($_SESSION['user_nome']) ? $_SESSION['user_nome'] : 'Utente'); ?>!
-                        </span>
-                    </div>                     
+                        <span class="font-bold text-lg leading-none drop-shadow-md text-white mt-1">Ciao <?php echo htmlspecialchars($nomeUtenteLoggato); ?>!</span>
+                    </div>
                 </div>
 
                 <nav class="flex items-center gap-2 bg-[#0A2338]/40 p-1.5 rounded-[20px] border border-white/10 overflow-x-auto custom-scrollbar">
-                    <?php if (in_array($logged_in_role, ['amministratore', 'coordinatore'])): ?>
+                    <?php if (in_array($ruoloUtente, ['amministratore', 'coordinatore'])): ?>
                     <a href="dipendenti.php" class="bg-nav-btn text-[#F1F6FF] px-5 py-2.5 rounded-[14px] text-sm font-bold shadow-md hover:brightness-110 transition-all whitespace-nowrap">Dipendenti</a>
                     <?php endif; ?>
-                    
                     <a href="prenotazione.php" class="bg-nav-btn text-[#F1F6FF] px-5 py-2.5 rounded-[14px] text-sm font-bold shadow-md hover:brightness-110 transition-all whitespace-nowrap">Prenota</a>
                     <a href="dashboard.php" class="bg-nav-btn text-[#F1F6FF] px-5 py-2.5 rounded-[14px] text-sm font-bold shadow-md hover:brightness-110 transition-all whitespace-nowrap">DashBoard</a>
-                    
                     <a href="gestisci.php" class="bg-nav-btn-active text-white px-5 py-2.5 rounded-[14px] text-sm font-black shadow-lg scale-105 border border-white/20 whitespace-nowrap">Gestisci</a>
                 </nav>
 
-                <div class="hidden md:flex items-center gap-3 text-[#BFD6E8] text-xs font-semibold mr-2">
+                <div class="hidden xl:flex items-center gap-3 text-[#BFD6E8] text-xs font-semibold mr-2">
                     <a href="gestisci.php" class="hover:text-white transition-colors uppercase">Modifica</a>
                     <span class="w-1 h-1 rounded-full bg-white/20"></span>
                     <a href="loginhandle.php?action=logout" class="hover:text-white transition-colors uppercase">Cambia utente</a>
@@ -357,8 +387,8 @@ function renderPrenotazioneCard($p) {
                     <div class="flex items-start justify-between">
                         <div class="flex-1">
                             <div class="flex flex-wrap gap-2 items-center">
-                                <input type="text" name="nome" value="<?php echo htmlspecialchars($nomeUtente); ?>" class="bg-transparent text-3xl font-black text-white uppercase tracking-wider outline-none hover:bg-white/5 focus:bg-white/10 rounded px-2 py-1 transition-colors w-auto max-w-[200px]" placeholder="Nome" required>
-                                <input type="text" name="cognome" value="<?php echo htmlspecialchars($cognomeUtente); ?>" class="bg-transparent text-3xl font-black text-white uppercase tracking-wider outline-none hover:bg-white/5 focus:bg-white/10 rounded px-2 py-1 transition-colors w-auto max-w-[200px]" placeholder="Cognome" required>
+                                <input type="text" name="nome" value="<?php echo htmlspecialchars($nomeTarget); ?>" class="bg-transparent text-3xl font-black text-white uppercase tracking-wider outline-none hover:bg-white/5 focus:bg-white/10 rounded px-2 py-1 transition-colors w-auto max-w-[200px]" placeholder="Nome" required>
+                                <input type="text" name="cognome" value="<?php echo htmlspecialchars($cognomeTarget); ?>" class="bg-transparent text-3xl font-black text-white uppercase tracking-wider outline-none hover:bg-white/5 focus:bg-white/10 rounded px-2 py-1 transition-colors w-auto max-w-[200px]" placeholder="Cognome" required>
                             </div>
                             <input type="text" value="<?php echo htmlspecialchars($aziendaUtente); ?>" class="bg-transparent text-[#BFD6E8] text-sm font-bold uppercase tracking-widest mt-1 outline-none rounded px-2 py-1 w-full max-w-md cursor-default pointer-events-none" readonly>
                         </div>
@@ -531,7 +561,7 @@ function renderPrenotazioneCard($p) {
                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
             </div>
             <h3 class="text-xl font-black text-white mb-2 uppercase tracking-wide">Eliminazione Definitiva</h3>
-            <p class="text-[#BFD6E8] text-sm mb-8">Stai per eliminare in via definitiva l'utente <strong><?php echo htmlspecialchars($nomeUtente . ' ' . $cognomeUtente); ?></strong>. Tutti i suoi dati e prenotazioni verranno persi. Vuoi procedere?</p>
+            <p class="text-[#BFD6E8] text-sm mb-8">Stai per eliminare in via definitiva l'utente <strong><?php echo htmlspecialchars($nomeTarget . ' ' . $cognomeTarget); ?></strong>. Tutti i suoi dati e prenotazioni verranno persi. Vuoi procedere?</p>
             
             <form method="POST" action="gestisci.php?id=<?php echo $target_user_id; ?>">
                 <input type="hidden" name="delete_user" value="1">

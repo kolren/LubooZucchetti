@@ -2,6 +2,8 @@ CREATE DATABASE IF NOT EXISTS luboo_zucchetti5ib;
 USE luboo_zucchetti5ib;
 
 SET FOREIGN_KEY_CHECKS=0;
+DROP TABLE IF EXISTS logs;
+DROP TABLE IF EXISTS messaggi;
 DROP TABLE IF EXISTS prenotazioni;
 DROP TABLE IF EXISTS asset;
 DROP TABLE IF EXISTS users;
@@ -49,8 +51,31 @@ INSERT INTO users (username, password, role, nome, cognome, data_nascita, sesso,
 ('dp.pana', 'dipendente', 'dipendente', 'Ana', 'Padurariu', '2007-11-30', 'M', 18, '3L55z1', 1),
 ('dp.pgiovanni', 'dipendente', 'dipendente', 'Giovanni', 'Papetti', '2007-04-12', 'M', 18, '8H99o4', 1),
 ('dp.nthomas', 'dipendente', 'dipendente', 'Thomas', 'Nervi', '2007-01-01', 'M', 18, '2J66w7', 2);
-    
 
+-- ==========================================
+-- TABELLA MESSAGGI
+-- ==========================================
+CREATE TABLE IF NOT EXISTS messaggi (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    mittente_id INT NOT NULL,
+    destinatario_id INT NOT NULL,
+    testo TEXT NOT NULL,
+    letto TINYINT(1) DEFAULT 0,
+    data_invio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (mittente_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (destinatario_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Messaggi pre-impostati per simulare interazioni sulla messaggistica
+INSERT INTO messaggi (mittente_id, destinatario_id, testo, letto, data_invio) VALUES 
+(2, 1, 'Ciao Valentina, potresti verificare se la Sala Meeting 1 è libera per una riunione urgente domani mattina?', 1, '2026-04-15 09:15:00'),
+(1, 2, 'Ciao Maichol, ho controllato. È libera dalle 10:00 alle 11:30, te l\'ho prenotata.', 1, '2026-04-15 09:30:00'),
+(4, 5, 'Giovanni, scusa il disturbo. Per caso hai parcheggiato nel posto auto 10 stamattina? Risulta occupato e io avevo prenotato quello.', 1, '2026-04-16 08:35:00'),
+(5, 4, 'Scusami Ana! Ho fatto confusione con le prenotazioni. Scendo subito a spostare l\'auto nel posto 12.', 1, '2026-04-16 08:38:00'),
+(4, 5, 'Nessun problema, grazie mille!', 0, '2026-04-16 08:40:00'),
+(6, 3, 'Nehemie, ricordati che oggi alle 14:00 abbiamo il sync per il nuovo design nella Sala 2. Ho già prenotato.', 1, '2026-04-16 09:00:00'),
+(3, 6, 'Grazie Thomas, me lo ero segnato. Ci vediamo direttamente lì.', 0, '2026-04-16 09:10:00'),
+(2, 4, 'Ana, ricordati di aggiornare il task su Trello prima della riunione di domani. Grazie!', 0, '2026-04-16 11:00:00');
 
 -- ==========================================
 -- TABELLA ASSET
@@ -66,6 +91,7 @@ CREATE TABLE asset (
     INDEX idx_ricerca (piano, tipo),
     INDEX idx_tipo_asset (tipo)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 TRUNCATE TABLE asset; 
 INSERT INTO asset (tipo, nome, codice_univoco, armadietto, piano) VALUES
 -- PIANO 1: Sale Riunioni (1-5)
@@ -185,97 +211,68 @@ CREATE TABLE prenotazioni (
     CONSTRAINT fk_prenotazioni_asset FOREIGN KEY (asset_id) REFERENCES asset(id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-
 INSERT INTO prenotazioni (user_id, asset_id, data_prenotazione, ora_inizio, ora_fine, stato) VALUES 
 
 -- ==========================================
 -- PRENOTAZIONI PASSATE (Stato: conclusa o annullata)
 -- ==========================================
-
--- Ana Padurariu (ID:4) prenota la Scrivania Base 5 (ID Asset: 35) per la giornata intera
-(4, 35, '2026-03-02', '09:00:00', '18:00:00', 'conclusa'),
-
--- Giovanni Papetti (ID:5) prenota il Posto Auto 2 (ID Asset: 62)
-(5, 62, '2026-03-02', '08:30:00', '18:30:00', 'conclusa'),
-
--- Thomas Nervi (ID:6) prenota la Scrivania Tech 2 (ID Asset: 12) solo mezza giornata
-(6, 12, '2026-03-03', '09:00:00', '13:00:00', 'conclusa'),
-
--- Maichol Aprea (ID:2) prenota la Sala Meeting 1 (ID Asset: 1) ma poi viene annullata
-(2, 1, '2026-03-03', '10:00:00', '12:00:00', 'annullata'),
-
--- Nehemie Kablan (ID:3) prenota la Sala Meeting 2 (ID Asset: 2) nel pomeriggio
-(3, 2, '2026-03-04', '14:00:00', '16:00:00', 'conclusa'),
-
--- Ana Padurariu (ID:4) prenota la Scrivania Tech 5 (ID Asset: 15)
-(4, 15, '2026-03-04', '09:00:00', '18:00:00', 'conclusa'),
-
+(4, 35, '2026-04-13', '09:00:00', '18:00:00', 'conclusa'),
+(5, 62, '2026-04-14', '08:30:00', '18:00:00', 'conclusa'),
+(1, 5, '2026-04-14', '10:00:00', '12:00:00', 'conclusa'),
+(1, 63, '2026-04-14', '08:00:00', '18:00:00', 'conclusa'),
+(6, 12, '2026-04-15', '09:00:00', '13:00:00', 'conclusa'),
+(2, 1, '2026-04-15', '10:00:00', '12:00:00', 'annullata'),
+(3, 2, '2026-04-15', '14:00:00', '16:00:00', 'conclusa'),
 
 -- ==========================================
--- PRENOTAZIONI DI OGGI: 5 MARZO 2026
+-- PRENOTAZIONI DI OGGI: 16 APRILE 2026
 -- ==========================================
-
--- Giovanni Papetti (ID:5) alla Scrivania Base 10 (ID Asset: 40) - Attualmente in corso
-(5, 40, '2026-03-05', '09:00:00', '18:00:00', 'attiva'),
-
--- Thomas Nervi (ID:6) al Posto Auto 10 (ID Asset: 70) - Attualmente in corso
-(6, 70, '2026-03-05', '08:45:00', '18:15:00', 'attiva'),
-
--- Maichol Aprea (ID:2) ha fatto un meeting rapido la mattina presto (Già conclusa)
-(2, 3, '2026-03-05', '09:00:00', '10:30:00', 'conclusa'),
-
--- Ana Padurariu (ID:4) ha prenotato una Scrivania Base 6 (ID Asset: 36) per il pomeriggio
-(4, 36, '2026-03-05', '14:00:00', '18:00:00', 'attiva'),
-
+(1, 11, '2026-04-16', '08:30:00', '18:00:00', 'attiva'), 
+(1, 61, '2026-04-16', '08:00:00', '18:00:00', 'attiva'), 
+(1, 1, '2026-04-16', '10:00:00', '12:00:00', 'conclusa'), 
+(2, 31, '2026-04-16', '09:00:00', '18:00:00', 'attiva'), 
+(2, 62, '2026-04-16', '08:30:00', '17:30:00', 'attiva'), 
+(3, 15, '2026-04-16', '09:00:00', '18:00:00', 'attiva'), 
+(3, 5, '2026-04-16', '15:00:00', '16:30:00', 'attiva'), 
+(4, 36, '2026-04-16', '09:00:00', '18:00:00', 'attiva'), 
+(5, 40, '2026-04-16', '08:30:00', '17:30:00', 'attiva'), 
+(6, 70, '2026-04-16', '09:00:00', '18:00:00', 'attiva'), 
 
 -- ==========================================
 -- PRENOTAZIONI FUTURE (Stato: attiva)
 -- ==========================================
+(1, 11, '2026-04-17', '09:00:00', '18:00:00', 'attiva'), 
+(1, 8, '2026-04-17', '14:00:00', '16:00:00', 'attiva'), 
+(4, 35, '2026-04-17', '09:00:00', '18:00:00', 'attiva'), 
+(6, 12, '2026-04-20', '09:00:00', '18:00:00', 'attiva'), 
+(3, 61, '2026-04-20', '08:00:00', '18:00:00', 'attiva'), 
+(5, 63, '2026-04-20', '08:15:00', '17:45:00', 'attiva'), 
+(2, 50, '2026-04-21', '09:30:00', '17:30:00', 'attiva'), 
+(6, 10, '2026-04-21', '14:00:00', '18:00:00', 'attiva'), 
+(1, 2,  '2026-04-21', '10:00:00', '11:30:00', 'attiva'); 
 
--- Ana Padurariu (ID:4) prenota nuovamente la Scrivania Base 5 (ID Asset: 35) per domani
-(4, 35, '2026-03-06', '09:00:00', '18:00:00', 'attiva'),
-
--- Giovanni Papetti (ID:5) prenota la Sala Meeting 4 (ID Asset: 4) per domani pomeriggio
-(5, 4, '2026-03-06', '15:00:00', '17:00:00', 'attiva'),
-
--- Thomas Nervi (ID:6) si assicura la Scrivania Tech 2 (ID Asset: 12) per la prossima settimana
-(6, 12, '2026-03-10', '09:00:00', '18:00:00', 'attiva'),
-
--- Nehemie Kablan (ID:3) prenota il Posto Auto 1 (ID Asset: 61) per la prossima settimana
-(3, 61, '2026-03-10', '08:00:00', '19:00:00', 'attiva'),
-
--- Maichol Aprea (ID:2) prenota la Scrivania Base 20 (ID Asset: 50) tra una settimana
-(2, 50, '2026-03-12', '09:30:00', '17:30:00', 'attiva'),
-
--- Thomas Nervi (ID:6) prenota la Sala Meeting 10 (ID Asset: 10) per una riunione lunga
-(6, 10, '2026-03-12', '14:00:00', '18:00:00', 'attiva'),
-
--- [PASSATE] Valentina prenota la Sala Meeting 5 (ID: 5) per una riunione direzionale
-(1, 5, '2026-03-02', '10:00:00', '12:00:00', 'conclusa'),
-
--- [PASSATE] Valentina prenota il Posto Auto 3 (ID: 63)
-(1, 63, '2026-03-02', '08:00:00', '18:00:00', 'conclusa'),
-
--- [PASSATE] Valentina prenota la Scrivania Tech 1 (ID: 11) ma annulla
-(1, 11, '2026-03-03', '09:00:00', '18:00:00', 'annullata'),
-
-
--- [OGGI - 5 Marzo] Valentina è alla Scrivania Tech 1 (ID: 11) - Attualmente in corso
-(1, 11, '2026-03-05', '09:00:00', '18:00:00', 'attiva'),
-
--- [OGGI - 5 Marzo] Valentina ha prenotato il Posto Auto 3 (ID: 63)
-(1, 63, '2026-03-05', '08:30:00', '18:30:00', 'attiva'),
-
-
--- [FUTURE] Valentina prenota la Sala Meeting 8 al Piano 2 (ID: 8) per settimana prossima
-(1, 8, '2026-03-09', '14:00:00', '16:00:00', 'attiva'),
-
--- [FUTURE] Valentina prenota nuovamente la Scrivania Tech 1 (ID: 11) per la prossima settimana
-(1, 11, '2026-03-10', '09:00:00', '18:00:00', 'attiva');
+-- ==========================================
+-- TABELLA LOGS
+-- ==========================================
 CREATE TABLE IF NOT EXISTS logs (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NULL,
     azione VARCHAR(100) NOT NULL,
     dettagli TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_logs_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Log pre-impostati per simulare le attività sul gestionale
+INSERT INTO logs (user_id, azione, dettagli, created_at) VALUES 
+(4, 'Login', 'Accesso effettuato con successo.', '2026-04-13 08:50:00'),
+(4, 'Nuova Prenotazione', 'Prenotata Scrivania Base 15 per il 2026-04-13.', '2026-04-13 08:55:00'),
+(1, 'Login', 'Accesso effettuato con successo.', '2026-04-14 07:55:00'),
+(1, 'Nuova Prenotazione', 'Prenotato Posto Auto 1 per il 2026-04-14.', '2026-04-14 07:58:00'),
+(5, 'Nuova Prenotazione', 'Prenotato Posto Auto 10 per il 2026-04-14.', '2026-04-14 08:20:00'),
+(2, 'Login', 'Accesso effettuato con successo.', '2026-04-15 08:15:00'),
+(2, 'Annullamento Prenotazione', 'Annullata prenotazione Sala Meeting 1 per il 2026-04-15.', '2026-04-15 09:35:00'),
+(1, 'Nuova Prenotazione', 'Prenotata Sala Meeting 1 per utente ID 2 per il 2026-04-16.', '2026-04-15 09:36:00'),
+(1, 'Modifica Profilo', 'Aggiornati dati utente ID 4 (Ana Padurariu).', '2026-04-15 11:15:00'),
+(6, 'Login', 'Accesso effettuato con successo.', '2026-04-16 08:50:00'),
+(6, 'Nuova Prenotazione', 'Prenotato Posto Auto 8 per il 2026-04-16.', '2026-04-16 08:55:00');

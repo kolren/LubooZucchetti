@@ -14,25 +14,54 @@ $user_id = intval($_SESSION['user_id']);
 $nomeUtente = isset($_SESSION['user_nome']) ? $_SESSION['user_nome'] : 'Utente';
 $ruoloUtente = strtolower(trim(isset($_SESSION['user_ruolo']) ? $_SESSION['user_ruolo'] : 'dipendente'));
 
-// --- QUERY PER STATISTICHE ---
+// --- LOGICA FILTRO GLOBALE ---
+$periodo = isset($_GET['periodo']) ? $_GET['periodo'] : 'tutto';
+$cond = "1=1";
+$cond_p = "1=1";
+
+if ($periodo === 'oggi') {
+    $cond = "DATE(data_prenotazione) = CURDATE()";
+    $cond_p = "DATE(p.data_prenotazione) = CURDATE()";
+} elseif ($periodo === 'settimana') {
+    $cond = "YEARWEEK(data_prenotazione, 1) = YEARWEEK(CURDATE(), 1)";
+    $cond_p = "YEARWEEK(p.data_prenotazione, 1) = YEARWEEK(CURDATE(), 1)";
+} elseif ($periodo === 'mese') {
+    $cond = "MONTH(data_prenotazione) = MONTH(CURDATE()) AND YEAR(data_prenotazione) = YEAR(CURDATE())";
+    $cond_p = "MONTH(p.data_prenotazione) = MONTH(CURDATE()) AND YEAR(p.data_prenotazione) = YEAR(CURDATE())";
+} elseif ($periodo === 'anno') {
+    $cond = "YEAR(data_prenotazione) = YEAR(CURDATE())";
+    $cond_p = "YEAR(p.data_prenotazione) = YEAR(CURDATE())";
+}
+
+// --- QUERY PER STATISTICHE (Filtrate) ---
 
 // 1. Prenotazioni Totali
-$q_tot = $conn->query("SELECT COUNT(*) as c FROM prenotazioni WHERE user_id = $user_id AND stato != 'annullata'");
+$q_tot = $conn->query("SELECT COUNT(*) as c FROM prenotazioni WHERE user_id = $user_id AND stato != 'annullata' AND $cond");
 $stat_totali = $q_tot ? $q_tot->fetch_assoc()['c'] : 0;
 
 // 2. In Arrivo (Data futura o oggi ma non ancora finita)
-$q_arr = $conn->query("SELECT COUNT(*) as c FROM prenotazioni WHERE user_id = $user_id AND stato != 'annullata' AND CONCAT(data_prenotazione, ' ', ora_fine) > NOW()");
+$q_arr = $conn->query("SELECT COUNT(*) as c FROM prenotazioni WHERE user_id = $user_id AND stato != 'annullata' AND CONCAT(data_prenotazione, ' ', ora_fine) > NOW() AND $cond");
 $stat_in_arrivo = $q_arr ? $q_arr->fetch_assoc()['c'] : 0;
 
-// 3. Questo Mese
-$q_mese = $conn->query("SELECT COUNT(*) as c FROM prenotazioni WHERE user_id = $user_id AND stato != 'annullata' AND MONTH(data_prenotazione) = MONTH(CURRENT_DATE()) AND YEAR(data_prenotazione) = YEAR(CURRENT_DATE())");
-$stat_mese = $q_mese ? $q_mese->fetch_assoc()['c'] : 0;
+// 3. Statistica Dinamica (Card 3)
+$label_card_3 = "Questo Mese";
+if ($periodo === 'oggi') $label_card_3 = "Oggi";
+elseif ($periodo === 'settimana') $label_card_3 = "Questa Settimana";
+elseif ($periodo === 'mese') $label_card_3 = "Questo Mese";
+elseif ($periodo === 'anno') $label_card_3 = "Quest'Anno";
+
+if ($periodo === 'tutto') {
+    $q_3 = $conn->query("SELECT COUNT(*) as c FROM prenotazioni WHERE user_id = $user_id AND stato != 'annullata' AND MONTH(data_prenotazione) = MONTH(CURRENT_DATE()) AND YEAR(data_prenotazione) = YEAR(CURRENT_DATE())");
+} else {
+    $q_3 = $conn->query("SELECT COUNT(*) as c FROM prenotazioni WHERE user_id = $user_id AND stato != 'annullata' AND $cond");
+}
+$stat_3 = $q_3 ? $q_3->fetch_assoc()['c'] : 0;
 
 // 4. Postazione Più Usata
-$q_top = $conn->query("SELECT a.nome, COUNT(*) as c FROM prenotazioni p JOIN asset a ON p.asset_id = a.id WHERE p.user_id = $user_id AND p.stato != 'annullata' GROUP BY a.id ORDER BY c DESC LIMIT 1");
+$q_top = $conn->query("SELECT a.nome, COUNT(*) as c FROM prenotazioni p JOIN asset a ON p.asset_id = a.id WHERE p.user_id = $user_id AND p.stato != 'annullata' AND $cond_p GROUP BY a.id ORDER BY c DESC LIMIT 1");
 $stat_postazione_top = ($q_top && $q_top->num_rows > 0) ? $q_top->fetch_assoc()['nome'] : "Nessuna";
 
-// --- PRENOTAZIONI IN ARRIVO (Lista) ---
+// --- PRENOTAZIONI IN ARRIVO (Lista Filtrata) ---
 $mesi_it = [1=>'Gennaio',2=>'Febbraio',3=>'Marzo',4=>'Aprile',5=>'Maggio',6=>'Giugno',7=>'Luglio',8=>'Agosto',9=>'Settembre',10=>'Ottobre',11=>'Novembre',12=>'Dicembre'];
 $tipi_label = ['base' => 'Scrivania Base', 'tech' => 'Scrivania Tech', 'meeting' => 'Sala Riunioni', 'parking' => 'Posto Auto'];
 
@@ -41,7 +70,7 @@ $q_list = $conn->query("
     SELECT p.data_prenotazione, p.ora_inizio, p.ora_fine, a.nome, a.tipo 
     FROM prenotazioni p 
     JOIN asset a ON p.asset_id = a.id 
-    WHERE p.user_id = $user_id AND p.stato != 'annullata' AND CONCAT(p.data_prenotazione, ' ', p.ora_fine) > NOW() 
+    WHERE p.user_id = $user_id AND p.stato != 'annullata' AND CONCAT(p.data_prenotazione, ' ', p.ora_fine) > NOW() AND $cond_p
     ORDER BY p.data_prenotazione ASC, p.ora_inizio ASC 
     LIMIT 5
 ");
@@ -71,15 +100,14 @@ function getAssetIconDashboard($tipo) {
     return file_exists($filename) ? file_get_contents($filename) : '<div class="text-white/50 text-xs">N/A</div>';
 }
 
-// --- ATTIVITÀ (Dati Grafico Dinamici) ---
+// --- ATTIVITÀ (Dati Grafico Dinamici Filtrati) ---
 $attivita_dati = [
     'settimana' => ['Lunedì' => 0, 'Martedì' => 0, 'Mercoledì' => 0, 'Giovedì' => 0, 'Venerdì' => 0],
     'mese' => ['1ª Sett' => 0, '2ª Sett' => 0, '3ª Sett' => 0, '4ª Sett' => 0],
-    // Raggruppamento per Trimestri esplicito
     'anno' => ['Gen-Mar' => 0, 'Apr-Giu' => 0, 'Lug-Set' => 0, 'Ott-Dic' => 0]
 ];
 
-$q_att = $conn->query("SELECT data_prenotazione FROM prenotazioni WHERE user_id = $user_id AND stato != 'annullata' AND YEAR(data_prenotazione) = YEAR(CURRENT_DATE())");
+$q_att = $conn->query("SELECT data_prenotazione FROM prenotazioni WHERE user_id = $user_id AND stato != 'annullata' AND YEAR(data_prenotazione) = YEAR(CURRENT_DATE()) AND $cond");
 
 $curr_week = date('W');
 $curr_month = date('n');
@@ -106,7 +134,7 @@ if ($q_att) {
         
         // Assegno alla Settimana Corrente
         if (date('W', $ts) == $curr_week) {
-            $day_w = date('N', $ts); // 1 (Lun) to 7 (Dom)
+            $day_w = date('N', $ts); 
             if ($day_w == 1) $attivita_dati['settimana']['Lunedì']++;
             elseif ($day_w == 2) $attivita_dati['settimana']['Martedì']++;
             elseif ($day_w == 3) $attivita_dati['settimana']['Mercoledì']++;
@@ -156,9 +184,43 @@ $roleTheme = array_key_exists($ruoloUtente, $themeColors) ? $themeColors[$ruoloU
         .bg-btn-prenota { background: linear-gradient(145deg, #B3836A, #C89A80); }
         .bg-btn-gestisci { background: linear-gradient(145deg, #5C78B8, #6C8DD0); }
 
-        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(7, 27, 43, 0.6); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #36A482 0%, #1D7F75 100%);
+            border-radius: 4px;
+            box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.1);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, #51E0B8 0%, #36A482 100%);
+            box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.15), 0 0 8px rgba(81, 224, 184, 0.5);
+        }
+        
+        /* SCROLLBAR DESIGN ELEGANTE GLOBALE */
+        ::-webkit-scrollbar {
+            width: 12px;
+            height: 12px;
+        }
+        ::-webkit-scrollbar-track {
+            background: linear-gradient(180deg, rgba(7, 27, 43, 0.7) 0%, rgba(14, 47, 71, 0.8) 100%);
+            border-radius: 10px;
+            border: 1px solid rgba(54, 164, 130, 0.1);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #36A482 0%, #1D7F75 50%, #0F6E73 100%);
+            border-radius: 10px;
+            border: 1px solid rgba(81, 224, 184, 0.3);
+            box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.1), 0 0 8px rgba(54, 164, 130, 0.4);
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, #51E0B8 0%, #36A482 50%, #1D7F75 100%);
+            box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.15), 0 0 16px rgba(81, 224, 184, 0.6);
+            border-color: rgba(81, 224, 184, 0.5);
+        }
+        ::-webkit-scrollbar-thumb:active {
+            background: linear-gradient(180deg, #36A482 0%, #0F6E73 100%);
+            box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.1), 0 0 12px rgba(54, 164, 130, 0.5);
+        }
         
         .glass-panel { backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
     </style>
@@ -169,11 +231,16 @@ $roleTheme = array_key_exists($ruoloUtente, $themeColors) ? $themeColors[$ruoloU
     <div class="w-full max-w-[1400px] flex flex-col gap-8 pt-24">
 
         <header class="fixed top-0 left-0 right-0 z-50">
-            <div class="bg-navbar glass-panel rounded-[29px] p-4 lg:p-5 flex items-center justify-between flex-wrap gap-4">
+            <div class="bg-navbar glass-panel rounded-[29px] p-4 lg:p-5 flex items-center justify-between flex-wrap gap-4 mx-4 md:mx-6 lg:mx-8 mt-4">
                 <div class="flex items-center gap-4 lg:gap-6">
                     <img src="src/Logo.png" alt="LubooZucchetti" class="h-10 object-contain ml-2">
                     
-                    <div class="<?php echo $roleTheme['box_grad']; ?> rounded-[18px] px-5 py-2.5 flex flex-col justify-center shadow-lg border border-white/10">
+                    <a href="messaggistica.php" class="relative flex items-center justify-center text-[#BFD6E8] hover:text-white transition-colors bg-white/5 p-2.5 rounded-xl border border-white/10 hover:bg-[#36A482]/20 hover:border-[#36A482]/50 group shadow-md" title="Messaggi">
+                        <svg class="w-6 h-6 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+                        <span class="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#0A2338]"></span>
+                    </a>
+
+                    <div class="<?php echo $roleTheme['box_grad']; ?> rounded-[18px] px-5 py-2.5 flex flex-col justify-center shadow-lg border border-white/10 hidden sm:flex">
                         <span class="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md self-start mb-0.5 shadow-sm" 
                             style="background-color: <?php echo $roleTheme['badge_bg']; ?>; color: <?php echo $roleTheme['badge_text']; ?>;">
                             <?php echo htmlspecialchars($ruoloUtente); ?>
@@ -194,7 +261,7 @@ $roleTheme = array_key_exists($ruoloUtente, $themeColors) ? $themeColors[$ruoloU
                     <a href="gestisci.php" class="bg-nav-btn text-[#F1F6FF] px-5 py-2.5 rounded-[14px] text-sm font-bold shadow-md hover:brightness-110 transition-all whitespace-nowrap">Gestisci</a>
                 </nav>
 
-                <div class="hidden md:flex items-center gap-3 text-[#BFD6E8] text-xs font-semibold mr-2">
+                <div class="hidden xl:flex items-center gap-3 text-[#BFD6E8] text-xs font-semibold mr-2">
                     <a href="gestisci.php" class="hover:text-white transition-colors uppercase">Modifica</a>
                     <span class="w-1 h-1 rounded-full bg-white/20"></span>
                     <a href="loginhandle.php?action=logout" class="hover:text-white transition-colors uppercase">Cambia utente</a>
@@ -204,7 +271,19 @@ $roleTheme = array_key_exists($ruoloUtente, $themeColors) ? $themeColors[$ruoloU
             </div>
         </header>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 w-full">
+        <div class="w-full flex justify-end -mb-4 relative z-40">
+            <form method="GET" id="filterForm">
+                <select name="periodo" onchange="this.form.submit()" class="bg-[#0A2338]/80 text-[#BFD6E8] text-sm font-bold border border-white/10 rounded-xl px-4 py-2 outline-none shadow-md cursor-pointer hover:bg-white/10 transition-colors appearance-none">
+                    <option value="tutto" <?php echo $periodo == 'tutto' ? 'selected' : ''; ?>>Tutto il periodo</option>
+                    <option value="oggi" <?php echo $periodo == 'oggi' ? 'selected' : ''; ?>>Oggi</option>
+                    <option value="settimana" <?php echo $periodo == 'settimana' ? 'selected' : ''; ?>>Questa Settimana</option>
+                    <option value="mese" <?php echo $periodo == 'mese' ? 'selected' : ''; ?>>Questo Mese</option>
+                    <option value="anno" <?php echo $periodo == 'anno' ? 'selected' : ''; ?>>Quest'Anno</option>
+                </select>
+            </form>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 w-full mt-2">
             <div class="bg-card-1 glass-panel rounded-[24px] p-8 flex flex-col justify-center transition-transform hover:-translate-y-1">
                 <div class="text-[48px] font-black text-[#F2F7FF] mb-2 leading-none drop-shadow-md"><?php echo $stat_totali; ?></div>
                 <div class="text-[12px] font-bold text-[#CDE3F7] uppercase tracking-wider">Prenotazioni totali</div>
@@ -214,8 +293,8 @@ $roleTheme = array_key_exists($ruoloUtente, $themeColors) ? $themeColors[$ruoloU
                 <div class="text-[12px] font-bold text-white/60 uppercase tracking-wider">In arrivo</div>
             </div>
             <div class="bg-card-3 glass-panel rounded-[24px] p-8 flex flex-col justify-center transition-transform hover:-translate-y-1">
-                <div class="text-[48px] font-black text-white mb-2 leading-none drop-shadow-md"><?php echo $stat_mese; ?></div>
-                <div class="text-[12px] font-bold text-white/70 uppercase tracking-wider">Questo mese</div>
+                <div class="text-[48px] font-black text-white mb-2 leading-none drop-shadow-md"><?php echo $stat_3; ?></div>
+                <div class="text-[12px] font-bold text-white/70 uppercase tracking-wider"><?php echo $label_card_3; ?></div>
             </div>
             <div class="bg-card-4 glass-panel rounded-[24px] p-8 flex flex-col justify-center transition-transform hover:-translate-y-1">
                 <div class="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center mb-4">
@@ -277,11 +356,11 @@ $roleTheme = array_key_exists($ruoloUtente, $themeColors) ? $themeColors[$ruoloU
                     </div>
 
                     <div class="flex-grow flex flex-col justify-center relative min-h-[180px]">
-                        <?php foreach ($attivita_dati as $periodo => $dati_periodo): 
+                        <?php foreach ($attivita_dati as $per => $dati_periodo): 
                             $max_val = max($dati_periodo) ?: 1;
-                            $hide_class = ($periodo === 'settimana') ? '' : 'hidden opacity-0';
+                            $hide_class = ($per === 'settimana') ? '' : 'hidden opacity-0';
                         ?>
-                            <div id="dati-<?php echo $periodo; ?>" class="attivita-container flex-col gap-5 absolute inset-0 w-full h-full flex justify-center transition-opacity duration-300 <?php echo $hide_class; ?>">
+                            <div id="dati-<?php echo $per; ?>" class="attivita-container flex-col gap-5 absolute inset-0 w-full h-full flex justify-center transition-opacity duration-300 <?php echo $hide_class; ?>">
                                 <?php foreach ($dati_periodo as $label => $valore): 
                                     $percentuale = ($valore / $max_val) * 100;
                                 ?>

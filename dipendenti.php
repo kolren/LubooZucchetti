@@ -66,13 +66,13 @@ if ($ruoloUtente === 'dipendente') {
 // 2. Logica di Visualizzazione 
 $view = 'dipendenti';
 if (isset($_GET['view'])) {
-    if ($_GET['view'] === 'coordinatori') $view = 'coordinatori';
+    if ($_GET['view'] === 'coordinatori' && $ruoloUtente === 'amministratore') $view = 'coordinatori';
     elseif ($_GET['view'] === 'nuovo' && $ruoloUtente === 'amministratore') $view = 'nuovo';
-    elseif ($_GET['view'] === 'logs' && $ruoloUtente === 'amministratore') $view = 'logs';
+    elseif ($_GET['view'] === 'logs' && ($ruoloUtente === 'amministratore' || $ruoloUtente === 'coordinatore')) $view = 'logs';
 }
 
-// I Coordinatori non possono vedere le altre tab
-if ($ruoloUtente === 'coordinatore') {
+// I Coordinatori non possono vedere la tab coordinatori e nuovo
+if ($ruoloUtente === 'coordinatore' && in_array($view, ['coordinatori', 'nuovo'])) {
     $view = 'dipendenti'; 
 }
 
@@ -80,8 +80,14 @@ if ($ruoloUtente === 'coordinatore') {
 $utenti_lista = [];
 $logs_lista = [];
 
-if ($view === 'logs' && $ruoloUtente === 'amministratore') {
-    $res_logs = $conn->query("SELECT l.*, u.nome, u.cognome FROM logs l LEFT JOIN users u ON l.user_id = u.id ORDER BY l.created_at DESC LIMIT 50");
+if ($view === 'logs' && ($ruoloUtente === 'amministratore' || $ruoloUtente === 'coordinatore')) {
+    if ($ruoloUtente === 'amministratore') {
+        // Admin vede tutti i logs
+        $res_logs = $conn->query("SELECT l.*, u.nome, u.cognome FROM logs l LEFT JOIN users u ON l.user_id = u.id ORDER BY l.created_at DESC LIMIT 50");
+    } else {
+        // Coordinatore vede solo i logs dei dipendenti del suo team
+        $res_logs = $conn->query("SELECT l.*, u.nome, u.cognome FROM logs l LEFT JOIN users u ON l.user_id = u.id WHERE u.team_id = $my_team_id OR u.role = 'coordinatore' AND u.team_id = $my_team_id ORDER BY l.created_at DESC LIMIT 50");
+    }
     if($res_logs) {
         while($l = $res_logs->fetch_assoc()) { $logs_lista[] = $l; }
     }
@@ -152,6 +158,33 @@ $roleTheme = $themeColors[$ruoloUtente];
     <title>Gestione Personale - LubooZucchetti</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        /* SCROLLBAR DESIGN ELEGANTE GLOBALE */
+        ::-webkit-scrollbar {
+            width: 12px;
+            height: 12px;
+        }
+        ::-webkit-scrollbar-track {
+            background: linear-gradient(180deg, rgba(7, 27, 43, 0.7) 0%, rgba(14, 47, 71, 0.8) 100%);
+            border-radius: 10px;
+            border: 1px solid rgba(54, 164, 130, 0.1);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #36A482 0%, #1D7F75 50%, #0F6E73 100%);
+            border-radius: 10px;
+            border: 1px solid rgba(81, 224, 184, 0.3);
+            box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.1), 0 0 8px rgba(54, 164, 130, 0.4);
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, #51E0B8 0%, #36A482 50%, #1D7F75 100%);
+            box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.15), 0 0 16px rgba(81, 224, 184, 0.6);
+            border-color: rgba(81, 224, 184, 0.5);
+        }
+        ::-webkit-scrollbar-thumb:active {
+            background: linear-gradient(180deg, #36A482 0%, #0F6E73 100%);
+            box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.1), 0 0 12px rgba(54, 164, 130, 0.5);
+        }
+    </style>
     <link rel="stylesheet" href="style.css"> 
 </head>
 
@@ -168,38 +201,43 @@ $roleTheme = $themeColors[$ruoloUtente];
             </div>
         <?php endif; ?>
         
-        <header class="fixed top-0 left-0 right-0 z-50">
-            <div class="bg-navbar glass-panel rounded-[29px] p-4 lg:p-5 flex items-center justify-between flex-wrap gap-4">
-                <div class="flex items-center gap-4 lg:gap-6">
-                    <img src="src/Logo.png" alt="LubooZucchetti" class="h-10 object-contain ml-2">
-                    
-                    <div class="<?php echo $roleTheme['box_grad']; ?> rounded-[18px] px-5 py-2.5 flex flex-col justify-center shadow-lg border border-white/10">
-                        <span class="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md self-start mb-0.5 shadow-sm" 
-                            style="background-color: <?php echo $roleTheme['badge_bg']; ?>; color: <?php echo $roleTheme['badge_text']; ?>;">
-                            <?php echo htmlspecialchars($ruoloUtente); ?>
-                        </span>
-                        <span class="font-bold text-lg leading-none drop-shadow-md text-white mt-1">
-                            Ciao <?php echo htmlspecialchars($nomeUtente); ?>!
-                        </span>
-                    </div>
-                </div>
+          <header class="fixed top-0 left-0 right-0 z-50">
+        <div class="bg-navbar glass-panel rounded-[29px] p-4 lg:p-5 flex items-center justify-between flex-wrap gap-4 mx-4 md:mx-6 lg:mx-8 mt-4">
+        
+        <div class="flex items-center gap-4 lg:gap-6">
+            <img src="src/Logo.png" alt="LubooZucchetti" class="h-10 object-contain ml-2">
+            
+            <a href="messaggistica.php" class="relative flex items-center justify-center text-[#BFD6E8] hover:text-white transition-colors bg-white/5 p-2.5 rounded-xl border border-white/10 hover:bg-[#36A482]/20 hover:border-[#36A482]/50 group shadow-md" title="Messaggi">
+            <svg class="w-6 h-6 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+            <span class="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#0A2338]"></span>
+            </a>
 
-                <nav class="flex items-center gap-2 bg-[#0A2338]/40 p-1.5 rounded-[20px] border border-white/10 overflow-x-auto custom-scrollbar">
-                    <a href="dipendenti.php" class="bg-nav-btn-active text-white px-5 py-2.5 rounded-[14px] text-sm font-black shadow-lg scale-105 border border-white/20 whitespace-nowrap">Dipendenti</a>
-                    <a href="prenotazione.php" class="bg-nav-btn text-[#F1F6FF] px-5 py-2.5 rounded-[14px] text-sm font-bold shadow-md hover:brightness-110 transition-all whitespace-nowrap">Prenota</a>
-                    <a href="dashboard.php" class="bg-nav-btn text-[#F1F6FF] px-5 py-2.5 rounded-[14px] text-sm font-bold shadow-md hover:brightness-110 transition-all whitespace-nowrap">DashBoard</a>
-                    <a href="gestisci.php" class="bg-nav-btn text-[#F1F6FF] px-5 py-2.5 rounded-[14px] text-sm font-bold shadow-md hover:brightness-110 transition-all whitespace-nowrap">Gestisci</a>
-                </nav>
-
-                <div class="hidden md:flex items-center gap-3 text-[#BFD6E8] text-xs font-semibold mr-2">
-                    <a href="gestisci.php" class="hover:text-white transition-colors uppercase">Modifica</a>
-                    <span class="w-1 h-1 rounded-full bg-white/20"></span>
-                    <a href="loginhandle.php?action=logout" class="hover:text-white transition-colors uppercase">Cambia utente</a>
-                    <span class="w-1 h-1 rounded-full bg-white/20"></span>
-                    <a href="loginhandle.php?action=logout" class="text-[#FF8A8A] hover:text-[#FFB3B3] transition-colors uppercase">Esci</a>
-                </div>
+            <div class="<?php echo $roleTheme['box_grad']; ?> rounded-[18px] px-5 py-2.5 flex flex-col justify-center shadow-lg border border-white/10 hidden sm:flex">
+            <span class="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md self-start mb-0.5 shadow-sm" style="background-color: <?php echo $roleTheme['badge_bg']; ?>; color: <?php echo $roleTheme['badge_text']; ?>;">
+                <?php echo htmlspecialchars($ruoloUtente); ?>
+            </span>
+            <span class="font-bold text-lg leading-none drop-shadow-md text-white mt-1">Ciao <?php echo htmlspecialchars($nomeUtente); ?>!</span>
             </div>
-        </header>
+        </div>
+
+        <nav class="flex items-center gap-2 bg-[#0A2338]/40 p-1.5 rounded-[20px] border border-white/10 overflow-x-auto custom-scrollbar">
+            <?php if (in_array($ruoloUtente, ['amministratore', 'coordinatore'])): ?>
+            <a href="dipendenti.php" class="bg-nav-btn-active text-white px-5 py-2.5 rounded-[14px] text-sm font-black shadow-lg scale-105 border border-white/20 whitespace-nowrap">Dipendenti</a>
+            <?php endif; ?>
+            <a href="prenotazione.php" class="bg-nav-btn text-[#F1F6FF] px-5 py-2.5 rounded-[14px] text-sm font-bold shadow-md hover:brightness-110 transition-all whitespace-nowrap">Prenota</a>
+            <a href="dashboard.php" class="bg-nav-btn text-[#F1F6FF] px-5 py-2.5 rounded-[14px] text-sm font-bold shadow-md hover:brightness-110 transition-all whitespace-nowrap">DashBoard</a>
+            <a href="gestisci.php" class="bg-nav-btn text-[#F1F6FF] px-5 py-2.5 rounded-[14px] text-sm font-bold shadow-md hover:brightness-110 transition-all whitespace-nowrap">Gestisci</a>
+        </nav>
+
+        <div class="hidden xl:flex items-center gap-3 text-[#BFD6E8] text-xs font-semibold mr-2">
+            <a href="gestisci.php" class="hover:text-white transition-colors uppercase">Modifica</a>
+            <span class="w-1 h-1 rounded-full bg-white/20"></span>
+            <a href="loginhandle.php?action=logout" class="hover:text-white transition-colors uppercase">Cambia utente</a>
+            <span class="w-1 h-1 rounded-full bg-white/20"></span>
+            <a href="loginhandle.php?action=logout" class="text-[#FF8A8A] hover:text-[#FFB3B3] transition-colors uppercase">Esci</a>
+        </div>
+        </div>
+    </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch min-h-[70vh]">
             
@@ -221,6 +259,11 @@ $roleTheme = $themeColors[$ruoloUtente];
                         <a href="?view=coordinatori" class="px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap <?php echo $view === 'coordinatori' ? 'bg-white/10 text-[#00f2ff] shadow-sm' : 'text-white/50 hover:text-white'; ?>">Coordinatori</a>
                         <a href="?view=nuovo" class="px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap <?php echo $view === 'nuovo' ? 'bg-white/10 text-[#00f2ff] shadow-sm' : 'text-white/50 hover:text-white'; ?>">Aggiungi Personale</a>
                         <a href="?view=logs" class="px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap <?php echo $view === 'logs' ? 'bg-white/10 text-[#00f2ff] shadow-sm' : 'text-white/50 hover:text-white'; ?>">Logs</a>
+                    </div>
+                    <?php elseif ($ruoloUtente === 'coordinatore'): ?>
+                    <div class="bg-[#0A2338]/60 p-1.5 rounded-xl border border-white/10 flex items-center shadow-inner overflow-x-auto">
+                        <a href="?view=dipendenti" class="px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap <?php echo $view === 'dipendenti' ? 'bg-white/10 text-[#00f2ff] shadow-sm' : 'text-white/50 hover:text-white'; ?>">Dipendenti</a>
+                        <a href="?view=logs" class="px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap <?php echo $view === 'logs' ? 'bg-white/10 text-[#00f2ff] shadow-sm' : 'text-white/50 hover:text-white'; ?>">Logs Attività</a>
                     </div>
                     <?php endif; ?>
                 </div>
